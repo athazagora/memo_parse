@@ -28,12 +28,24 @@ def parse_prisoner_link(url):
     if len(tmp_conteiner) > 1: prisoner_addr = tmp_conteiner[1].split("\n", 1)[0]
   # print (prisoner_addr)
   
-  return { 'prisoner_desc': prisoner_desc, 'prisoner_addr': prisoner_addr } 
+  # <div class="clause">
+  prisoner_case=[]
+  tmp_conteiner = soup.find('div', {'class': 'clause'})
+  # print (tmp_conteiner)
+  if tmp_conteiner:
+    tmp_conteiner = tmp_conteiner.text.split("Статья УК:")
+    for item in tmp_conteiner[1:]:
+      if len(item) > 1: item = item.split("\n")
+      for i in item:
+        if len(i) > 1: prisoner_case.append (i)
+  # print (prisoner_case)
+  
+  return { 'prisoner_desc': prisoner_desc, 'prisoner_addr': prisoner_addr, 'prisoner_case' : prisoner_case } 
 
 def parse_memo_url(url):
   results = []
   r = requests.get(url)
-    
+  
   soup = BeautifulSoup(r.text, 'html.parser')
   # <li class="card-news-tags dossier__card">
   items = soup.find_all('li', {'class': 'card-news-tags dossier__card'})
@@ -42,15 +54,16 @@ def parse_memo_url(url):
     prisoner_name = item.find('div', {'class': 'card-news-tags__title'}).text
     print (prisoner_name)
     prisoner_link = item.find('a', {'class': 'card-news-tags__invisible-link'}).get('href')
-    # print (prisoner_link)
+    prisoner_link = re.sub(r'/$', '', prisoner_link)
+    prisoner_intro = parse_prisoner_link(prisoner_link)
     
     # prisoner_case = get_class_content (item, 'teaser__cases', 'a', "инд")
     results.append({
             'prisoner_name': prisoner_name,
             'prisoner_link': prisoner_link,
-            # 'prisoner_case': prisoner_case,
-            'prisoner_addr': str(parse_prisoner_link(prisoner_link)['prisoner_addr']),
-            'prisoner_desc': str(parse_prisoner_link(prisoner_link)['prisoner_desc']),
+            'prisoner_case': str(prisoner_intro['prisoner_case']),
+            'prisoner_addr': str(prisoner_intro['prisoner_addr']),
+            'prisoner_desc': str(prisoner_intro['prisoner_desc']),
             'prisoner_male' : 2,
             'prisoner_bday': 0,
             'prisoner_bmonth': 0,
@@ -96,7 +109,7 @@ def get_list_function(url):
 def month_list_maker_function(url, month, file_name=None):
   print ( url )
   prisoner_list = get_list_function (url, file_name)
-  month_list = get_one_month_list (prisoner_list, month)
+  month_list = memo_parse_functions.get_one_month_list (prisoner_list, month)
   print_list(month_list,'markdown', file_name)
   return 0
 
@@ -138,9 +151,13 @@ else:
     fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
     if not os.path.exists(fold_name): os.makedirs(fold_name)
     print("Generate list to folder \"" + fold_name + "\"")
-    print_bot_list(get_list_function(polit_url), 'markdown', os.path.join(fold_name, "polit_list.txt"))
-    print_bot_list(get_list_function(relig_url), 'markdown', os.path.join(fold_name, "prob_list.txt"))
-    print_bot_list(get_list_function(probo_url), 'markdown', os.path.join(fold_name, "relig_list.txt"))
+    prisoner_list=get_list_function(polit_url)
+    # case207_3_list = [ i for i in prisoner_list if '207.3 ч.2' in i['prisoner_case'] ]
+    print_bot_list( [ i for i in prisoner_list if '207.3 ч.2' in i['prisoner_case'] ], 'markdown', os.path.join(fold_name, "antiw_list.txt"))
+    print_bot_list( [ i for i in prisoner_list if not ('207.3 ч.2' in i['prisoner_case']) ], 'markdown', os.path.join(fold_name, "polit_list.txt"))
+    
+    # print_bot_list(get_list_function(probo_url), 'markdown', os.path.join(fold_name, "prob_list.txt"))
+    # print_bot_list(get_list_function(relig_url), 'markdown', os.path.join(fold_name, "relig_list.txt"))
   if args.descr:
     print(args.descr)
     fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")

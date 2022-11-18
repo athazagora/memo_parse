@@ -78,6 +78,20 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_addr'] = field['prisoner_addr'].split(find_grad[0], 1)[0]
         field['prisoner_addr'] = field['prisoner_addr'].split("ФИО", 1)[0]
         field['prisoner_addr'] = field['prisoner_addr'].split("или через сервис:", 1)[0]
+        field['prisoner_grad'] = re.sub('Александр ', 'Александру ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Владимир ', 'Владимиру ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Андрей ', 'Андрею ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Багаудин ', 'Багаудину ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Салех ', 'Салеху ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Юрий ', 'Юрию ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Дмитрий ', 'Дмитрию ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Дудка ', 'Дудке ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub(r'ов$', 'ову', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub(r'ев$', 'еву', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub(r'ин$', 'ину', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub(r'ун$', 'уну', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub(r'кий$', 'кому', field['prisoner_grad'])
+        
         # field['prisoner_addr'] = field['prisoner_addr'].split("ФИО, год рождения.','', field['prisoner_addr'])
         
         field['prisoner_addr'] = re.sub(r'\n', r' ', field['prisoner_addr'])
@@ -103,6 +117,7 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_addr'] = re.sub('России по РТ','России по Республике Татарстан', field['prisoner_addr'])
         field['prisoner_addr'] = re.sub(r'России по (\w+) обл\.', r'России по \1 области', field['prisoner_addr'])
         field['prisoner_addr'] = re.sub('357500', '357502', field['prisoner_addr'])
+        field['prisoner_addr'] = re.sub('с. Кочубеевское, Ставропольский край', 'Ставропольский край, с. Кочубеевское', field['prisoner_addr'])
         # print (field['prisoner_addr'])
   return prisoner_list
 
