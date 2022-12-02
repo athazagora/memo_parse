@@ -85,7 +85,10 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_grad'] = re.sub('Салех ', 'Салеху ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Юрий ', 'Юрию ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Дмитрий ', 'Дмитрию ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Дудка ', 'Дудке ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Дамир ', 'Дамиру ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Азат ', 'Азату ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Рифат ', 'Рифату ', field['prisoner_grad'])
+        
         field['prisoner_grad'] = re.sub(r'ов$', 'ову', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub(r'ев$', 'еву', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub(r'ин$', 'ину', field['prisoner_grad'])
@@ -118,6 +121,8 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_addr'] = re.sub(r'России по (\w+) обл\.', r'России по \1 области', field['prisoner_addr'])
         field['prisoner_addr'] = re.sub('357500', '357502', field['prisoner_addr'])
         field['prisoner_addr'] = re.sub('с. Кочубеевское, Ставропольский край', 'Ставропольский край, с. Кочубеевское', field['prisoner_addr'])
+        field['prisoner_addr'] = re.sub('Ростовская обл., Новочеркасск', 'Ростовская область, г. Новочеркасск', field['prisoner_addr'])
+        field['prisoner_addr'] = re.sub('СИЗО № ', 'СИЗО-', field['prisoner_addr'])
         # print (field['prisoner_addr'])
   return prisoner_list
 

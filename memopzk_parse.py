@@ -49,7 +49,7 @@ def parse_memo_url(url):
   soup = BeautifulSoup(r.text, 'html.parser')
   # <li class="card-news-tags dossier__card">
   items = soup.find_all('li', {'class': 'card-news-tags dossier__card'})
-  # print (items)
+    
   for item in items:
     prisoner_name = item.find('div', {'class': 'card-news-tags__title'}).text
     print (prisoner_name)
@@ -57,7 +57,6 @@ def parse_memo_url(url):
     prisoner_link = re.sub(r'/$', '', prisoner_link)
     prisoner_intro = parse_prisoner_link(prisoner_link)
     
-    # prisoner_case = get_class_content (item, 'teaser__cases', 'a', "инд")
     results.append({
             'prisoner_name': prisoner_name,
             'prisoner_link': prisoner_link,
@@ -72,8 +71,27 @@ def parse_memo_url(url):
             })
   return results
   
+def parse_memo_tag_url(url):
+  results = []
+  r = requests.get(url)
+  
+  soup = BeautifulSoup(r.text, 'html.parser')
+  # <li class="card-news-tags archive__card tax__card">
+  items = soup.find_all('li', {'class': 'card-news-tags archive__card tax__card'})
+  
+  for item in items:
+    prisoner_name = item.find('a', {'class': 'card-news-tags__title'}).text
+    # print (prisoner_name)
+    prisoner_link = item.find('a', {'class': 'card-news-tags__invisible-link'}).get('href')
+    prisoner_link = re.sub(r'/$', '', prisoner_link)
+    # re.match(r'.*figurant.*', prisoner_link)
+    if 'figurant' in prisoner_link : results.append(prisoner_link)
+  return results
+  
 def print_bot_list(p_list, print_format='', file_name=None):
   if file_name != None: f = open(file_name, 'w')
+  p_list.sort(key=lambda name: name['prisoner_name'])
+  
   for field in p_list: 
     if print_format == 'markdown' :
       name = f"[{field['prisoner_name']}]({field['prisoner_link']})"
@@ -85,7 +103,7 @@ def print_bot_list(p_list, print_format='', file_name=None):
   if file_name != None: f.close()
 
 
-def get_list_function(url):
+def get_list_function(url, tag=0):
   prisoner_list = []
   page = ["not_empty"]
   i=1
@@ -93,17 +111,20 @@ def get_list_function(url):
   # if 1:
     page = []
     print ("page ", i)
-    page = parse_memo_url(url+str(i))
+    if tag : page = parse_memo_tag_url(url+str(i))
+    else : page = parse_memo_url(url+str(i))
     prisoner_list += page
     i+=1
   else:
     print(f'Набралось {i} страниц')
   
-  prisoner_list = memo_parse_functions.set_genrder_bit ( prisoner_list )
-  prisoner_list = memo_parse_functions.catch_birth_date ( prisoner_list )
-  prisoner_list = memo_parse_functions.clean_fields_from_exceed ( prisoner_list )
+  if not tag :
+    prisoner_list = memo_parse_functions.set_genrder_bit ( prisoner_list )
+    prisoner_list = memo_parse_functions.catch_birth_date ( prisoner_list )
+    prisoner_list = memo_parse_functions.clean_fields_from_exceed ( prisoner_list )
   
   return prisoner_list
+
 
 
 def month_list_maker_function(url, month, file_name=None):
@@ -137,6 +158,10 @@ polit_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-bez-pr
 relig_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-presleduemyh-za-religiyu/page/'
 probo_url='https://memopzk.org/list-persecuted/veroyatnye-zhertvy-ne-voshedshie-v-spiski/page/'
 
+antiw_tag_url='https://memopzk.org/tags/repressii-za-antivoennuyu-pozicziyu/page/'
+krym_tag_url='https://memopzk.org/regions/krym/page/'
+relig_tag_url='https://memopzk.org/tags/presledovaniya-po-religioznomu-priznaku/page/'
+muslim_tag_url='https://memopzk.org/tags/dela-musulman/page/'
 
 if args.month:
   for one_month in args.month:
@@ -151,13 +176,31 @@ else:
     fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
     if not os.path.exists(fold_name): os.makedirs(fold_name)
     print("Generate list to folder \"" + fold_name + "\"")
-    prisoner_list=get_list_function(polit_url)
-    # case207_3_list = [ i for i in prisoner_list if '207.3 ч.2' in i['prisoner_case'] ]
-    print_bot_list( [ i for i in prisoner_list if '207.3 ч.2' in i['prisoner_case'] ], 'markdown', os.path.join(fold_name, "antiw_list.txt"))
-    print_bot_list( [ i for i in prisoner_list if not ('207.3 ч.2' in i['prisoner_case']) ], 'markdown', os.path.join(fold_name, "polit_list.txt"))
     
-    # print_bot_list(get_list_function(probo_url), 'markdown', os.path.join(fold_name, "prob_list.txt"))
-    # print_bot_list(get_list_function(relig_url), 'markdown', os.path.join(fold_name, "relig_list.txt"))
+    polit_list=get_list_function(polit_url)
+    prob_list = get_list_function(probo_url)
+    relig_list = get_list_function(relig_url)
+    
+    antiw_tag_list=get_list_function(antiw_tag_url, 1)
+    krym_tag_list=get_list_function(krym_tag_url, 1)
+    relig_tag_list=get_list_function(relig_tag_url, 1)
+    muslim_tag_list = get_list_function(muslim_tag_url, 1)
+    
+    # case207_3_list = [ i for i in polit_list if '207.3 ч.2' in i['prisoner_case'] ]
+    
+    antiw_svb_list = [ i for i in polit_list if i['prisoner_link'] in antiw_tag_list ]
+    probp_svb_list = [ i for i in prob_list  if not (i['prisoner_link'] in antiw_tag_list + relig_tag_list + muslim_tag_list) ]
+    probr_svb_list = [ i for i in prob_list  if (i['prisoner_link'] in relig_tag_list + muslim_tag_list) ]
+    polit_svb_list = [ i for i in polit_list if not (i['prisoner_link'] in antiw_tag_list)]
+    polit_svb_list = polit_svb_list + probp_svb_list
+    relig_svb_list = relig_list + probr_svb_list
+    
+    print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
+    print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
+    print_bot_list( relig_svb_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
+    
+    # print_bot_list( [ i for i in relig_list + prob_list if i['prisoner_link'] in krym_tag_list], 'markdown', os.path.join(fold_name, "krym_list.txt"))
+
   if args.descr:
     print(args.descr)
     fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
@@ -165,6 +208,6 @@ else:
     print("Generate descr to folder \"" + fold_name + "\"")
     bot_description_maker_function(polit_url, os.path.join(fold_name, "descr_polit_list.txt"))
     bot_description_maker_function(probo_url, os.path.join(fold_name, "descr_prob_list.txt"))
-    bot_description_maker_function(relig_url, os.path.join(fold_name, "descr_relig_list.txt"))   
+    bot_description_maker_function(relig_url, os.path.join(fold_name, "descr_relig_list.txt"))
 
   
