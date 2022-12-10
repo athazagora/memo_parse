@@ -2,8 +2,8 @@
 from bs4 import BeautifulSoup
 
 import requests
-import re
 import random
+import re
 
 # functions from : https://waksoft.susu.ru/2021/04/15/kak-v-python-ispolzovat-proksi-dlya-podmeny-ip%E2%80%91adresov/
 
@@ -40,7 +40,7 @@ def find_workable(proxies, url):
     s = get_session(proxies)
   
     try:
-      print (f"curent {s.proxies}")
+      print (f"try {s.proxies}")
       r = s.get(url, timeout=1.5)
       rememb_session.append(s)
       break

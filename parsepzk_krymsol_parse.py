@@ -4,13 +4,9 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-
-import argparse
 import os
-from datetime import datetime
 
 import parsepzk_common_functions
-
 
 
 def parse_prisoner_link(url):
@@ -60,7 +56,7 @@ def parse_prisoner_link(url):
           prisoner_bmonth = prisoner_date[1]
           prisoner_byear = prisoner_date[2]
 
-  print (prisoner_case)
+  # print (prisoner_case)
 
   return { 'prisoner_desc': prisoner_desc, 'prisoner_addr': prisoner_addr, 'prisoner_case' : prisoner_case, 
            'prisoner_bday': prisoner_bday, 'prisoner_bmonth': prisoner_bmonth, 'prisoner_byear': prisoner_byear } 
@@ -102,61 +98,13 @@ def parse_krym_url(url):
   return results
 
 
-def month_list_maker_function(url, month, file_name=None):
-  print ( url )
-  prisoner_list = get_list_function (url, file_name)
-  month_list = parsepzk_common_functions.get_one_month_list (prisoner_list, month)
-  print_list(month_list,'markdown', file_name)
-  return 0
-
-def bot_description_maker_function(url, file_name=None):
-  print ( url )
-  prisoner_list = get_list_function (url)
+def top (fold_name):
+  polit_url='https://crimean-solidarity.org/polit-prisoners'
+  full_list=parse_krym_url(polit_url)
   
-  f = open(file_name, 'w')
-  for field in prisoner_list: 
-    print ("[" + field['prisoner_name'] + "]")
-  f.close()
+  prisoner_list = [ i for i in full_list if 'ОСУЖДЕН' in i['prisoner_case'] or 'В ЗАКЛЮЧЕНИИ' in i['prisoner_case'] ]
+  prisoner_list.sort(key=lambda day: day['prisoner_name'])
+  prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
+  prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
   
-  return 0
-  
-
-
-parser = argparse.ArgumentParser(description="Example of a single flag acting as a boolean and an option.")
-parser.add_argument('--month', nargs='+', default=False)
-parser.add_argument('--full_list', nargs='?', const="full_list", default=False)
-parser.add_argument('--descr', nargs='?', const="descr", default=False)
-
-args = parser.parse_args()
-
-polit_url='https://crimean-solidarity.org/polit-prisoners'
-
-if args.month:
-  for one_month in args.month:
-    file_name = "month_" + one_month + "_list_" + datetime.strftime(datetime.today(), "%Y.%m.%d") + ".txt"
-    print("Generate list for month " + one_month + " to file \"" + file_name + "\"")
-    month_list_maker_function(polit_url, one_month, file_name)
-else:
-  if args.full_list:
-    print(args.full_list)
-    fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
-    if not os.path.exists(fold_name): os.makedirs(fold_name)
-    print("Generate list to folder \"" + fold_name + "\"")
-    full_list=parse_krym_url(polit_url)
-    
-    prisoner_list = [ i for i in full_list if 'ОСУЖДЕН' in i['prisoner_case'] or 'В ЗАКЛЮЧЕНИИ' in i['prisoner_case'] ]
-    prisoner_list.sort(key=lambda day: day['prisoner_name'])
-    # for i in prisoner_list:
-       
-    # prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
-    # prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
-  
-    parsepzk_common_functions.print_bot_list(prisoner_list, 'markdown', os.path.join(fold_name, "krymsol_list.txt"))
-  if args.descr:
-    print(args.descr)
-    fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
-    if not os.path.exists(fold_name): os.makedirs(fold_name)
-    print("Generate descr to folder \"" + fold_name + "\"")
-    bot_description_maker_function(polit_url, os.path.join(fold_name, "krymsol_descr_polit_list.txt"))
-
-  
+  parsepzk_common_functions.print_bot_list(prisoner_list, 'markdown', os.path.join(fold_name, "krymsol_list.txt"))

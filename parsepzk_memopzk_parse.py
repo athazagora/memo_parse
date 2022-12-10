@@ -4,13 +4,9 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-
-import argparse
 import os
-from datetime import datetime
 
 import parsepzk_common_functions
-
 
 
 def parse_prisoner_link(url):
@@ -97,7 +93,7 @@ def get_list_function(url, tag=0):
   while len(page) != 0:
   # if 1:
     page = []
-    print ("page ", i)
+    print ("page " + str (i))
     if tag : page = parse_memo_tag_url(url+str(i))
     else : page = parse_memo_url(url+str(i))
     prisoner_list += page
@@ -111,7 +107,6 @@ def get_list_function(url, tag=0):
     prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
   
   return prisoner_list
-
 
 def month_list_maker_function(url, month, file_name=None):
   print ( url )
@@ -132,68 +127,50 @@ def bot_description_maker_function(url, file_name=None):
   return 0
   
 
+def top (fold_name):
 
-parser = argparse.ArgumentParser(description="Example of a single flag acting as a boolean and an option.")
-parser.add_argument('--month', nargs='+', default=False)
-parser.add_argument('--full_list', nargs='?', const="full_list", default=False)
-parser.add_argument('--descr', nargs='?', const="descr", default=False)
+  polit_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-bez-presleduemyh-za-religiyu/page/'
+  relig_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-presleduemyh-za-religiyu/page/'
+  probo_url='https://memopzk.org/list-persecuted/veroyatnye-zhertvy-ne-voshedshie-v-spiski/page/'
 
-args = parser.parse_args()
+  antiw_tag_url='https://memopzk.org/tags/repressii-za-antivoennuyu-pozicziyu/page/'
+  krym_tag_url='https://memopzk.org/regions/krym/page/'
+  relig_tag_url='https://memopzk.org/tags/presledovaniya-po-religioznomu-priznaku/page/'
+  muslim_tag_url='https://memopzk.org/tags/dela-musulman/page/'
 
-polit_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-bez-presleduemyh-za-religiyu/page/'
-relig_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-presleduemyh-za-religiyu/page/'
-probo_url='https://memopzk.org/list-persecuted/veroyatnye-zhertvy-ne-voshedshie-v-spiski/page/'
+  polit_list=get_list_function(polit_url)
+  prob_list = get_list_function(probo_url)
+  relig_list = get_list_function(relig_url)
+      
+  antiw_tag_list=get_list_function(antiw_tag_url, 1)
+  krym_tag_list=get_list_function(krym_tag_url, 1)
+  relig_tag_list=get_list_function(relig_tag_url, 1)
+  muslim_tag_list = get_list_function(muslim_tag_url, 1)
+      
+  # case207_3_list = [ i for i in polit_list if '207.3 ч.2' in i['prisoner_case'] ]
+      
+  antiw_svb_list = [ i for i in polit_list if i['prisoner_link'] in antiw_tag_list ]
+  probp_svb_list = [ i for i in prob_list  if not (i['prisoner_link'] in antiw_tag_list + relig_tag_list + muslim_tag_list) ]
+  probr_svb_list = [ i for i in prob_list  if (i['prisoner_link'] in relig_tag_list + muslim_tag_list) ]
+  polit_svb_list = [ i for i in polit_list if not (i['prisoner_link'] in antiw_tag_list)]
+  polit_svb_list = polit_svb_list + probp_svb_list
+  relig_svb_list = relig_list + probr_svb_list
 
-antiw_tag_url='https://memopzk.org/tags/repressii-za-antivoennuyu-pozicziyu/page/'
-krym_tag_url='https://memopzk.org/regions/krym/page/'
-relig_tag_url='https://memopzk.org/tags/presledovaniya-po-religioznomu-priznaku/page/'
-muslim_tag_url='https://memopzk.org/tags/dela-musulman/page/'
-
-if args.month:
-  for one_month in args.month:
-    file_name = "month_" + one_month + "_list_" + datetime.strftime(datetime.today(), "%Y.%m.%d") + ".txt"
-    print("Generate list for month " + one_month + " to file \"" + file_name + "\"")
-    month_list_maker_function(polit_url, one_month, file_name)
-    month_list_maker_function(relig_url, one_month, file_name)
-    month_list_maker_function(probo_url, one_month, file_name)
-else:
-  if args.full_list:
-    print(args.full_list)
-    fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
-    if not os.path.exists(fold_name): os.makedirs(fold_name)
-    print("Generate list to folder \"" + fold_name + "\"")
+  parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
+  parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
+  parsepzk_common_functions.print_bot_list( relig_svb_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
     
-    polit_list=get_list_function(polit_url)
-    prob_list = get_list_function(probo_url)
-    relig_list = get_list_function(relig_url)
-    
-    antiw_tag_list=get_list_function(antiw_tag_url, 1)
-    krym_tag_list=get_list_function(krym_tag_url, 1)
-    relig_tag_list=get_list_function(relig_tag_url, 1)
-    muslim_tag_list = get_list_function(muslim_tag_url, 1)
-    
-    # case207_3_list = [ i for i in polit_list if '207.3 ч.2' in i['prisoner_case'] ]
-    
-    antiw_svb_list = [ i for i in polit_list if i['prisoner_link'] in antiw_tag_list ]
-    probp_svb_list = [ i for i in prob_list  if not (i['prisoner_link'] in antiw_tag_list + relig_tag_list + muslim_tag_list) ]
-    probr_svb_list = [ i for i in prob_list  if (i['prisoner_link'] in relig_tag_list + muslim_tag_list) ]
-    polit_svb_list = [ i for i in polit_list if not (i['prisoner_link'] in antiw_tag_list)]
-    polit_svb_list = polit_svb_list + probp_svb_list
-    relig_svb_list = relig_list + probr_svb_list
-    
-    parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
-    parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
-    parsepzk_common_functions.print_bot_list( relig_svb_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
-    
-    # parsepzk_common_functions.print_bot_list( [ i for i in relig_list + prob_list if i['prisoner_link'] in krym_tag_list], 'markdown', os.path.join(fold_name, "krym_list.txt"))
+# if args.month:
+  # for one_month in args.month:
+    # file_name = "month_" + one_month + "_list_" + datetime.strftime(datetime.today(), "%Y.%m.%d") + ".txt"
+    # print("Generate list for month " + one_month + " to file \"" + file_name + "\"")
+    # month_list_maker_function(polit_url, one_month, file_name)
+    # month_list_maker_function(relig_url, one_month, file_name)
+    # month_list_maker_function(probo_url, one_month, file_name)
 
-  if args.descr:
-    print(args.descr)
-    fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
-    if not os.path.exists(fold_name): os.makedirs(fold_name)
-    print("Generate descr to folder \"" + fold_name + "\"")
-    bot_description_maker_function(polit_url, os.path.join(fold_name, "descr_polit_list.txt"))
-    bot_description_maker_function(probo_url, os.path.join(fold_name, "descr_prob_list.txt"))
-    bot_description_maker_function(relig_url, os.path.join(fold_name, "descr_relig_list.txt"))
-
-  
+  # if args.descr:
+    # print(args.descr)
+    # 
+    # bot_description_maker_function(polit_url, os.path.join(fold_name, "descr_polit_list.txt"))
+    # bot_description_maker_function(probo_url, os.path.join(fold_name, "descr_prob_list.txt"))
+    # bot_description_maker_function(relig_url, os.path.join(fold_name, "descr_relig_list.txt"))

@@ -2,8 +2,9 @@
 from bs4 import BeautifulSoup
 
 import requests
-import re
 import random
+import re
+import os
 
 import parsepzk_common_functions
 import parsepzk_proxy_functions
@@ -30,14 +31,14 @@ def parse_prisoner_link(url, session):
     
     # print ("clean2:\n" + clean_tmp_text)
     if 'ФИО' in clean_tmp_text:
-      prisoner_full_name = clean_tmp_text.split("ФИО: ")[1].strip()
+      prisoner_full_name = clean_tmp_text.split("ФИО: ")[1]
           
     if 'Год рождения' in clean_tmp_text:
       prisoner_byear = clean_tmp_text.split("Год рождения: ")[1]
     
     if 'Текущее местонахождение' in clean_tmp_text:
       prisoner_addr = clean_tmp_text.split("Текущее местонахождение: ")[1]
-      print ("addr: " + prisoner_addr)
+      # print ("addr: " + prisoner_addr)
       prisoner_addr = re.sub("^\s+|\n|\r|\s+$", '', prisoner_addr)
 
   # print ("prisoner_name: " + prisoner_full_name)
@@ -85,11 +86,11 @@ def parse_jwrussia_url(url):
     if prisoner_status in ['исправительная колония', 'Следственный изолятор']:
       prisoner_intro = parse_prisoner_link(prisoner_link, rememb_session)
       results.append({
-            'prisoner_name': str(prisoner_intro['prisoner_full_name']),
+            'prisoner_name': str(prisoner_intro['prisoner_full_name']).strip(),
             'prisoner_link': prisoner_link,
-            # 'prisoner_case': str(prisoner_intro['prisoner_case']),
+            'prisoner_case': "JW",
             'prisoner_addr': str(prisoner_intro['prisoner_addr']),
-            # 'prisoner_desc': str(prisoner_intro['prisoner_desc']),
+            'prisoner_desc': "JW",
             'prisoner_male' : 2,
             'prisoner_bday': 0,
             'prisoner_bmonth': 0,
@@ -97,12 +98,11 @@ def parse_jwrussia_url(url):
             'prisoner_grad': ""
             })
   return results
-    
-    
 
 
-url = "https://jw-russia.org/prisoners.html"
-prisoner_list = parse_jwrussia_url(url)
-parsepzk_common_functions.print_bot_list( prisoner_list, 'markdown', "jw_list.txt")
-
-# prisoner-card__info
+def top (fold_name):
+  url = "https://jw-russia.org/prisoners.html"
+  prisoner_list = parse_jwrussia_url(url)
+  prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
+  prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
+  parsepzk_common_functions.print_bot_list( prisoner_list, 'markdown', os.path.join(fold_name, "jw_list.txt"))

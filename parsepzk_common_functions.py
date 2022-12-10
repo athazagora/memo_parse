@@ -76,8 +76,6 @@ def clean_fields_from_exceed(prisoner_list):
         # print (field['prisoner_addr'])
         field['prisoner_grad'] = find_grad[1] + " " + find_grad [0]
         field['prisoner_addr'] = field['prisoner_addr'].split(find_grad[0], 1)[0]
-        field['prisoner_addr'] = field['prisoner_addr'].split("ФИО", 1)[0]
-        field['prisoner_addr'] = field['prisoner_addr'].split("или через сервис:", 1)[0]
         field['prisoner_grad'] = re.sub('Александр ', 'Александру ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Владимир ', 'Владимиру ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Андрей ', 'Андрею ', field['prisoner_grad'])
@@ -95,35 +93,39 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_grad'] = re.sub(r'ун$', 'уну', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub(r'кий$', 'кому', field['prisoner_grad'])
         
-        # field['prisoner_addr'] = field['prisoner_addr'].split("ФИО, год рождения.','', field['prisoner_addr'])
+    # field['prisoner_addr'] = field['prisoner_addr'].split("ФИО, год рождения.','', field['prisoner_addr'])
         
-        field['prisoner_addr'] = re.sub(r'\n', r' ', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'^(\d{3}) (\d{3})', r'\1\2', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'^(\d{6}) ', r'\1, ', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'[.,] *$', '', field['prisoner_addr'])
+    field['prisoner_addr'] = field['prisoner_addr'].split("ФИО", 1)[0]
+    field['prisoner_addr'] = field['prisoner_addr'].split("или через сервис:", 1)[0]
         
-        field['prisoner_addr'] = re.sub('Исправительная колония', 'ИК', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('Следственный изолятор', 'СИЗО', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'\n', r' ', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'^(\d{3}) (\d{3})', r'\1\2', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'^(\d{6}) ', r'\1, ', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'[.,] *$', '', field['prisoner_addr'])
         
-        has_fky = re.findall ('ФКУ', field['prisoner_addr'])
-        if len (has_fky)==0:
-          field['prisoner_addr'] = re.sub(r'ИК', 'ФКУ ИК', field['prisoner_addr'])
-          field['prisoner_addr'] = re.sub(r'СИЗО', 'ФКУ СИЗО', field['prisoner_addr'])
-          field['prisoner_addr'] = re.sub(r'ЛИУ', 'ФКУ ЛИУ', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('Исправительная колония', 'ИК', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('Следственный изолятор', 'СИЗО', field['prisoner_addr'])
+      
+    has_fky = re.findall ('ФКУ', field['prisoner_addr'])
+    if len (has_fky)==0:
+      field['prisoner_addr'] = re.sub(r'ИК', 'ФКУ ИК', field['prisoner_addr'])
+      field['prisoner_addr'] = re.sub(r'СИЗО', 'ФКУ СИЗО', field['prisoner_addr'])
+      field['prisoner_addr'] = re.sub(r'ЛИУ', 'ФКУ ЛИУ', field['prisoner_addr'])
         
-        field['prisoner_addr'] = re.sub(r'ФКУ (\w{2,4})[^\d]+(\d{1,3}) (\w{4,6}) России', r'ФКУ \1-\2 \3 России', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('г. Ростов-на-Дону ул. Тоннельная', 'г. Ростов-на-Дону, ул. Тоннельная', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'Япеева, 16\. СИЗО-1 по РТ*$', 'Япеева, 16/1, СИЗО-1 по Республике Татарстан', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'Новгородская обл., Валдайский район, г. Валдай', 'Новгородская обл., г. Валдай', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('бул. Ленина 4', 'Бульвар Ленина, д. 4,', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('России по РБ','России по Республике Башкортостан', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('России по РТ','России по Республике Татарстан', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub(r'России по (\w+) обл\.', r'России по \1 области', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('357500', '357502', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('с. Кочубеевское, Ставропольский край', 'Ставропольский край, с. Кочубеевское', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('Ростовская обл., Новочеркасск', 'Ростовская область, г. Новочеркасск', field['prisoner_addr'])
-        field['prisoner_addr'] = re.sub('СИЗО № ', 'СИЗО-', field['prisoner_addr'])
-        # print (field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'ФКУ (\w{2,4})[^\d]+(\d{1,3}) (\w{4,6}) России', r'ФКУ \1-\2 \3 России', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('г. Ростов-на-Дону ул. Тоннельная', 'г. Ростов-на-Дону, ул. Тоннельная', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'Япеева, 16\. СИЗО-1 по РТ*$', 'Япеева, 16/1, СИЗО-1 по Республике Татарстан', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'Новгородская обл., Валдайский район, г. Валдай', 'Новгородская обл., г. Валдай', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('бул. Ленина 4', 'Бульвар Ленина, д. 4,', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('России по РБ','России по Республике Башкортостан', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('России по РТ','России по Республике Татарстан', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'России по (\w+) обл\.', r'России по \1 области', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('357500', '357502', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('с. Кочубеевское, Ставропольский край', 'Ставропольский край, с. Кочубеевское', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub('Ростовская обл., Новочеркасск', 'Ростовская область, г. Новочеркасск', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'СИЗО № *', 'СИЗО-', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'ИК № *', 'ИК-', field['prisoner_addr'])
+    # print (field['prisoner_addr'])
   return prisoner_list
 
 def print_date(field):
@@ -199,3 +201,5 @@ def get_one_month_list(prisoner_list, month):
   month_list = [ i for i in prisoner_list if i['prisoner_bmonth'] == month]
   month_list.sort(key=lambda day: day['prisoner_bday'])
   return month_list
+
+ 
