@@ -1,0 +1,32 @@
+#!/bin/bash
+
+input_file="/home/ath/delo212/postcards/memo_parse/list_2022.12.11/pzktales_list.txt"
+echo ${input_file}
+
+sed -i "s/\t/ /g" ${input_file}
+sed -i '/Свободен/d' ${input_file}
+sed -i '/на свободе/d' ${input_file}
+sed -i '/Умер/d' ${input_file}
+sed -i '/не политический/d' ${input_file}
+sed -i '/Не политический/d' ${input_file}
+sed -i '/не политич./d' ${input_file}
+sed -i '/Домашний арест/d' ${input_file}
+sed -i '/домашний арест/d' ${input_file}
+sed -i '/Подписка о невыезде/d' ${input_file}
+sed -i '/Хизб ут-Тахрир/d' ${input_file}
+sed -i '/^\s|\t\*$/d' ${input_file}
+sed -i "s/^[0-9]\+ *//" ${input_file}
+sed -i "s/^ \+//" ${input_file}
+sed -i "s/^\"//" ${input_file}
+#sed -i 's/,\n/ /g' ${input_file}
+
+#sed -i 's/^[0-9]* \([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\) *\([0-9]*\).*В переписке\(.*\)*/[\1 \2 \3]() \4 г.р. :addr_delim: \5 (СказкиПЗК)/' ${input_file}
+#sed -i 's/^[0-9]* \([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\) *\([0-9]*\).*Недоступен\(.*\)*/[\1 \2 \3]() \4 г.р. :addr_delim: \5 (СказкиПЗК)/' ${input_file}
+# взять фио
+#sed 's/^\[\([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\) *\([а-яА-ЯёЁ]*\)\].*/\1 \2 \3/' skazki_pzk > skazki_fio
+
+#while read LINE
+#do 
+  #echo "$LINE"
+  #grep "$LINE" telegrambot/polit_list.txt -n | cut -d':' -f1
+#done < skazki_fio
