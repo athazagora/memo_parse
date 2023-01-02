@@ -1,6 +1,6 @@
 #!/bin/bash
 
-input_file="/home/ath/delo212/postcards/memo_parse/list_2022.12.11/pzktales_list.txt"
+input_file=${1}
 echo ${input_file}
 
 sed -i "s/\t/ /g" ${input_file}

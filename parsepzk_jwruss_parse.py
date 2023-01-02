@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 from bs4 import BeautifulSoup
 
@@ -47,14 +49,17 @@ def parse_prisoner_link(url, session):
 
   return { 'prisoner_full_name': prisoner_full_name, 'prisoner_addr': prisoner_addr, 'prisoner_byear' : prisoner_byear } 
 
-def parse_jwrussia_url(url):
+def parse_jwrussia_url(url, use_proxy):
   results = []
   
-  rememb_session = parsepzk_proxy_functions.get_workable_proxy_for_url(url)
-  print ( "via proxy: ")
-  print ( rememb_session.proxies )
+  if (use_proxy):
+    rememb_session = parsepzk_proxy_functions.get_workable_proxy_for_url(url)
+    print ( "via proxy: ")
+    print ( rememb_session.proxies )
+    r = rememb_session.get(url, timeout=1.5)
+  else:
+    r = requests.get(url)
   
-  r = rememb_session.get(url, timeout=1.5)
   r.encoding = r.apparent_encoding
   soup = BeautifulSoup(r.text, 'html.parser')
   
@@ -100,9 +105,9 @@ def parse_jwrussia_url(url):
   return results
 
 
-def top (fold_name):
+def top (fold_name, use_proxy):
   url = "https://jw-russia.org/prisoners.html"
-  prisoner_list = parse_jwrussia_url(url)
+  prisoner_list = parse_jwrussia_url(url, use_proxy)
   prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
   prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
   parsepzk_common_functions.print_bot_list( prisoner_list, 'markdown', os.path.join(fold_name, "jw_list.txt"))

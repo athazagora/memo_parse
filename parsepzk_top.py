@@ -15,8 +15,12 @@ import parsepzk_jwruss_parse
 parser = argparse.ArgumentParser(description="Example of a single flag acting as a boolean and an option.")
 parser.add_argument("-l", "--list", choices=["mm", "kr", "jw", "all"], default="", help="get classic format list")
 parser.add_argument("-k", "--knock", default="", action="store_true", help="knock into one")
+parser.add_argument("-use_proxy", "--use_proxy",default="", action="store_true", help="not use proxy fo jw_russia")
 
 args = parser.parse_args()
+
+if args.use_proxy: use_proxy = 1
+else: use_proxy = 0
 
 if args.list:
   # print(args.list)
@@ -32,7 +36,7 @@ if args.list:
     parsepzk_krymsol_parse.top(fold_name)
   if args.list in ["jw", "all"] :
     print ("Parse jw")
-    parsepzk_jwruss_parse.top(fold_name)
+    parsepzk_jwruss_parse.top(fold_name, use_proxy)
 
 if args.knock:
   fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
