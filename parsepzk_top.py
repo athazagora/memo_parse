@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+## python3 parsepzk_top.py --list=mm
 
 import argparse
 import os
@@ -50,6 +51,7 @@ if args.knock:
       print (filename)
       suff = " (" + filename + ")"
       if filename in ["relig_list.txt", "polit_list.txt", "antiw_list.txt"]: suff = " (Мемориал)"
+      if filename in ["bot_relig_list.txt", "bot_polit_list.txt", "bot_antiw_list.txt"]: suff = " (бот)"
       if filename in ["jw_list.txt"]: suff = " (JWRUS)"
       if filename in ["krymsol_list.txt"]: suff = " (Крымская Солидарность)"
       if filename in ["skaz_list.txt"]: suff = " (СказкиПЗК)"
@@ -57,6 +59,7 @@ if args.knock:
       with open(os.path.join(fold_name, filename), 'r') as f:
         line = f.readline()
         while line :
+          line = re.sub("^\[", '', line)
           line = re.sub(" :addr_delim:.*:addr_delim:", ':::::', line)
           line = re.sub("\n$", suff, line)
           print(line)

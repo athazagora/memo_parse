@@ -5,6 +5,7 @@
 import requests
 import shutil
 import re
+import datetime
 
 def set_genrder_bit (prisoner_list):
   for field in prisoner_list:
@@ -18,7 +19,7 @@ def set_genrder_bit (prisoner_list):
     field['prisoner_name'] = re.sub(r"\s+$", "", field['prisoner_name'])
   return prisoner_list
 
-def catch_birth_date(prisoner_list):
+def catch_birth_date_old(prisoner_list):
   mons_list=["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
   for field in prisoner_list:
     # print (field['prisoner_name'])
@@ -59,6 +60,88 @@ def catch_birth_date(prisoner_list):
       
   return prisoner_list
 
+
+# PATTERN = r'[р|Р]одил[а-я]*\s+(?P<day_1>\d{1,2})\s+(?P<month_1>[а-яА-Я]+)\s+(?P<year_1>\d{4})|(?P<day_2>\d{1,2})\s+(?P<month_2>[а-яА-Я]+)\s+(?P<year_2>\d{4})\s+года рождения|родил(ся|ась)\s+в\s+(?P<year_3>\d{4})\s+году|(?P<year_4>\d{4})\s+г\.\s?р\.'
+# PATTERN_WRAPPED = (
+    # r'[р|Р]одил[а-я]*\s+(?P<day_1>\d{1,2})\s+(?P<month_1>[а-яА-Я]+)\s+(?P<year_1>\d{4})|'
+    # r'(?P<day_2>\d{1,2})\s+(?P<month_2>[а-яА-Я]+)\s+(?P<year_2>\d{4})\s+года рождения|'
+    # r'родил(ся|ась)\s+в\s+(?P<year_3>\d{4})\s+году|'
+    # r'(?P<year_4>\d{4})\s+г\.\s?р\.'
+    # )
+
+
+def catch_birth_date(prisoner_list):
+  for field in prisoner_list:
+    print (field['prisoner_name'])
+    date = get_birthdate_from_text(field['prisoner_desc'])
+    split_date = date.replace('.', ' ').split()
+    print (split_date)
+    field['prisoner_byear'] = split_date[-1]
+    if (len(split_date) > 1): field['prisoner_bmonth'] = split_date[-2]
+    if (len(split_date) > 2): field['prisoner_bday'] = split_date[-3]
+    
+  return prisoner_list
+
+
+def get_birthdate_from_text(text: str) -> str:
+  """Извлекает дату или год рождения из текста
+  (для описаний с сайта https://memopzk.org/)
+  и возвращает в формате 'd.m.yyyy' """
+  # Чтобы красиво объединить все варианты регулярок,
+  # нужен флаг (?J) - он же gmJ. Но в модуле re он отсутсвует,
+  # поэтому для каждого варианта используем своё название групп
+  PATTERN = (
+    r'[р|Р]одил[а-я]*\s+(?P<day_1>\d{1,2})\s+(?P<month_1>[а-яА-Я]+)\s+(?P<year_1>\d{4})|'
+    r'(?P<day_2>\d{1,2})\s+(?P<month_2>[а-яА-Я]+)\s+(?P<year_2>\d{4})\s+года рождения|'
+    r'родил(ся|ась)\s+в\s+(?P<year_3>\d{4})\s+году|'
+    r'(?P<year_4>\d{4})\s+г\.\s?р\.'
+  )
+  MONTHS = {
+    'января': 1,
+    'февраля': 2,
+    'марта': 3,
+    'апреля': 4,
+    'мая': 5,
+    'июня': 6,
+    'июля': 7,
+    'августа': 8,
+    'сентября': 9,
+    'октября': 10,
+    'ноября': 11,
+    'декабря': 12
+  }
+  text_match = re.search(PATTERN, text)
+  print (text_match)
+  if text_match:
+    # Если в тексте найдена дата рождения полностью
+    if text_match.group('year_1') or text_match.group('year_2'):
+      day = text_match.group('day_1') or text_match.group('day_2')
+      month_str = (
+          text_match.group('month_1') or text_match.group('month_2'))
+      year = text_match.group('year_1') or text_match.group('year_2')
+      try:
+        date = datetime.datetime(
+                    year=int(year),
+                    month=MONTHS[month_str],
+                    day=int(day)
+                ).date()
+        date_str = date.strftime('%d.%m.%Y')
+        print (date_str)
+        return date_str
+      except Exception:
+        return '0'
+    # Если в тексте найден только год рождения
+    elif text_match.group('year_3') or text_match.group('year_4'):
+      year = (
+                text_match.group('year_3')
+                or text_match.group('year_4')
+                or '0')
+      year_str = year
+      return year_str
+  else:
+    return '0'
+
+
 def clean_fields_from_exceed(prisoner_list):
   for field in prisoner_list:
     # delete exceed word
@@ -86,6 +169,7 @@ def clean_fields_from_exceed(prisoner_list):
         field['prisoner_grad'] = re.sub('Дамир ', 'Дамиру ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Азат ', 'Азату ', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub('Рифат ', 'Рифату ', field['prisoner_grad'])
+        field['prisoner_grad'] = re.sub('Сергей ', 'Сергею ', field['prisoner_grad'])
         
         field['prisoner_grad'] = re.sub(r'ов$', 'ову', field['prisoner_grad'])
         field['prisoner_grad'] = re.sub(r'ев$', 'еву', field['prisoner_grad'])
@@ -102,7 +186,9 @@ def clean_fields_from_exceed(prisoner_list):
     field['prisoner_addr'] = re.sub(r'^(\d{3}) (\d{3})', r'\1\2', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'^(\d{6}) ', r'\1, ', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'[.,] *$', '', field['prisoner_addr'])
-        
+    field['prisoner_addr'] = re.sub('Написать письмо осуждённым можно через сайт «Крымской Солидарности»: https://crimean-solidarity.org/jaz-ummetim Бумажные письма отправлять по адресу:', '', field['prisoner_addr'])
+    ield['prisoner_addr'] = re.sub('Через ФСИН-письмо или обычной почтой:', '', field['prisoner_addr'])
+       
     field['prisoner_addr'] = re.sub('Исправительная колония', 'ИК', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub('Следственный изолятор', 'СИЗО', field['prisoner_addr'])
       
@@ -111,6 +197,7 @@ def clean_fields_from_exceed(prisoner_list):
       field['prisoner_addr'] = re.sub(r'ИК', 'ФКУ ИК', field['prisoner_addr'])
       field['prisoner_addr'] = re.sub(r'СИЗО', 'ФКУ СИЗО', field['prisoner_addr'])
       field['prisoner_addr'] = re.sub(r'ЛИУ', 'ФКУ ЛИУ', field['prisoner_addr'])
+    
         
     field['prisoner_addr'] = re.sub(r'ФКУ (\w{2,4})[^\d]+(\d{1,3}) (\w{4,6}) России', r'ФКУ \1-\2 \3 России', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub('г. Ростов-на-Дону ул. Тоннельная', 'г. Ростов-на-Дону, ул. Тоннельная', field['prisoner_addr'])

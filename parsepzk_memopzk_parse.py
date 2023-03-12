@@ -90,10 +90,10 @@ def get_list_function(url, tag=0):
   prisoner_list = []
   page = ["not_empty"]
   i=1
+  
   while len(page) != 0:
-  # if 1:
     page = []
-    print ("page " + str (i))
+    print ("page " + url+str (i))
     if tag : page = parse_memo_tag_url(url+str(i))
     else : page = parse_memo_url(url+str(i))
     prisoner_list += page

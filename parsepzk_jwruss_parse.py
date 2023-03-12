@@ -56,10 +56,10 @@ def parse_jwrussia_url(url, use_proxy):
     rememb_session = parsepzk_proxy_functions.get_workable_proxy_for_url(url)
     print ( "via proxy: ")
     print ( rememb_session.proxies )
-    r = rememb_session.get(url, timeout=1.5)
   else:
-    r = requests.get(url)
-  
+    rememb_session = requests
+    
+  r = rememb_session.get(url, timeout=1.5)
   r.encoding = r.apparent_encoding
   soup = BeautifulSoup(r.text, 'html.parser')
   

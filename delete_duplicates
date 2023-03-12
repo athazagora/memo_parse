@@ -6,6 +6,7 @@ echo ${input_file}
 sed -i "s/\t/ /g" ${input_file}
 sed -i '/Свободен/d' ${input_file}
 sed -i '/на свободе/d' ${input_file}
+sed -i '/На свободе/d' ${input_file}
 sed -i '/Умер/d' ${input_file}
 sed -i '/не политический/d' ${input_file}
 sed -i '/Не политический/d' ${input_file}
