@@ -8,10 +8,12 @@ import os
 
 import parsepzk_common_functions
 
+import pickle
+
 
 def parse_prisoner_link(url):
   
-  r = requests.get(url)
+  r = requests.get(url, timeout=500)
   soup = BeautifulSoup(r.text, 'html.parser')
   #  <div class="human-dossier__art">
   prisoner_desc = soup.find('div', {'class': 'human-dossier__art'}).text
@@ -22,6 +24,7 @@ def parse_prisoner_link(url):
   if tmp_conteiner:
     tmp_conteiner = tmp_conteiner.text.split("Написать письмо\n")
     if len(tmp_conteiner) > 1: 
+      # print (tmp_conteiner)
       prisoner_addr = re.sub("^\s+|\n|\r|\s+$", '', tmp_conteiner[1])
       # tmp_conteiner[1].split("\n", 1)[0]
   # print (prisoner_addr)
@@ -42,7 +45,7 @@ def parse_prisoner_link(url):
 
 def parse_memo_url(url):
   results = []
-  r = requests.get(url)
+  r = requests.get(url, timeout=500)
   
   soup = BeautifulSoup(r.text, 'html.parser')
   # <li class="card-news-tags dossier__card">
@@ -71,7 +74,7 @@ def parse_memo_url(url):
   
 def parse_memo_tag_url(url):
   results = []
-  r = requests.get(url)
+  r = requests.get(url, timeout=500)
   
   soup = BeautifulSoup(r.text, 'html.parser')
   # <li class="card-news-tags archive__card tax__card">
@@ -86,34 +89,57 @@ def parse_memo_tag_url(url):
     if 'figurant' in prisoner_link : results.append(prisoner_link)
   return results  
 
-def get_list_function(url, tag=0):
+def page_exist(url):
+  r = requests.get(url, timeout=500);
+  return len(r.text) > 10 ;
+  
+
+def save_tmp_list(prisoner_list, file_name):
+  print ("save tmp to filename : " +  file_name)
+  # f = open(file_name, 'w')
+  with open(file_name, "wb") as fp:   #Pickling
+    pickle.dump(prisoner_list, fp)
+
+
+def restore_tmp_list(file_name):
+  print ("restore tmp from filename : " +  file_name)
+  result = []
+  with open(file_name, "rb") as fp:   # Unpickling
+    result = pickle.load(fp)
+  return result
+
+
+def get_list_function(url, try_to_restore = 0, fold_name="", tag=0):
   prisoner_list = []
   page = ["not_empty"]
   i=1
   
-  while len(page) != 0:
-    page = []
-    print ("page " + url+str (i))
-    if tag : page = parse_memo_tag_url(url+str(i))
-    else : page = parse_memo_url(url+str(i))
-    prisoner_list += page
-    i+=1
-  else:
-    print(f'Набралось {i} страниц')
+  filename= url
+  filename= re.sub('https://memopzk.org/', '', filename)
+  filename= re.sub('/', '_', filename) + "tmp.pkl"
+  filename= os.path.join(fold_name, filename)
   
-  if not tag :
-    prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
-    prisoner_list = parsepzk_common_functions.catch_birth_date ( prisoner_list )
-    prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
+  if try_to_restore and os.path.exists(filename):
+    prisoner_list = restore_tmp_list (filename)
+  else :
+    while page_exist(url+str(i)):
+      print ("page " + url+str (i))
+      if tag : page = parse_memo_tag_url(url+str(i))
+      else : page = parse_memo_url(url+str(i))
+      prisoner_list += page
+      i+=1
+    else:
+      print(f'Набралось {i} страниц')
+    
+    if not tag :
+      prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
+      prisoner_list = parsepzk_common_functions.catch_birth_date ( prisoner_list )
+      prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
   
+    save_tmp_list (prisoner_list, filename)
+    
   return prisoner_list
 
-def month_list_maker_function(url, month, file_name=None):
-  print ( url )
-  prisoner_list = get_list_function (url, file_name)
-  month_list = parsepzk_common_functions.get_one_month_list (prisoner_list, month)
-  print_list(month_list,'markdown', file_name)
-  return 0
 
 def bot_description_maker_function(url, file_name=None):
   print ( url )
@@ -127,47 +153,84 @@ def bot_description_maker_function(url, file_name=None):
   return 0
   
 
-def top (fold_name):
+def top (fold_name, try_to_restore = 1):
 
   polit_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-bez-presleduemyh-za-religiyu/page/'
   relig_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-presleduemyh-za-religiyu/page/'
   probo_url='https://memopzk.org/list-persecuted/veroyatnye-zhertvy-ne-voshedshie-v-spiski/page/'
-
+  
+  antiw_page_url='https://memopzk.org/list-persecuted/antivoennoe-delo/page/'
   antiw_tag_url='https://memopzk.org/tags/repressii-za-antivoennuyu-pozicziyu/page/'
+  
+  case_207_3_1='https://memopzk.org/uk/207-3-ch-1/page/'
+  case_207_3_2='https://memopzk.org/uk/207-3-ch-2/page/'
   krym_tag_url='https://memopzk.org/regions/krym/page/'
   relig_tag_url='https://memopzk.org/tags/presledovaniya-po-religioznomu-priznaku/page/'
   muslim_tag_url='https://memopzk.org/tags/dela-musulman/page/'
+  hizb_tag_url='https://memopzk.org/tags/hizb-ut-tahrir/page/'
+  jw_tag_url='https://memopzk.org/tags/presledovanie-svidetelej-iegovy/page/'
+  
+  prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
 
-  polit_list=get_list_function(polit_url)
-  prob_list = get_list_function(probo_url)
-  relig_list = get_list_function(relig_url)
-      
-  antiw_tag_list=get_list_function(antiw_tag_url, 1)
-  krym_tag_list=get_list_function(krym_tag_url, 1)
-  relig_tag_list=get_list_function(relig_tag_url, 1)
-  muslim_tag_list = get_list_function(muslim_tag_url, 1)
-      
-  # case207_3_list = [ i for i in polit_list if '207.3 ч.2' in i['prisoner_case'] ]
-      
-  antiw_svb_list = [ i for i in polit_list if i['prisoner_link'] in antiw_tag_list ]
-  probp_svb_list = [ i for i in prob_list  if not (i['prisoner_link'] in antiw_tag_list + relig_tag_list + muslim_tag_list) ]
-  probr_svb_list = [ i for i in prob_list  if (i['prisoner_link'] in relig_tag_list + muslim_tag_list) ]
-  polit_svb_list = [ i for i in polit_list if not (i['prisoner_link'] in antiw_tag_list)]
-  polit_svb_list = polit_svb_list + probp_svb_list
-  relig_svb_list = relig_list + probr_svb_list
-
-  parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
-  parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
-  parsepzk_common_functions.print_bot_list( relig_svb_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
+  test_case = 0
+  if test_case:
+    polit_list = get_list_function(polit_url, try_to_restore, fold_name)
+    prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
     
-# if args.month:
-  # for one_month in args.month:
-    # file_name = "month_" + one_month + "_list_" + datetime.strftime(datetime.today(), "%Y.%m.%d") + ".txt"
-    # print("Generate list for month " + one_month + " to file \"" + file_name + "\"")
-    # month_list_maker_function(polit_url, one_month, file_name)
-    # month_list_maker_function(relig_url, one_month, file_name)
-    # month_list_maker_function(probo_url, one_month, file_name)
+    one_list = [ i for i in polit_list if (i['prisoner_name'] == "Сапаров Николай Владимирович")]
+    
+    for item in one_list:
+      print (item)
+      item['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( item['prisoner_addr'], prison_list[460:467])
+    print ("")
 
+  else :
+  
+    polit_list = get_list_function(polit_url, try_to_restore, fold_name)
+    prob_list  = get_list_function(probo_url, try_to_restore, fold_name)
+    relig_list = get_list_function(relig_url, try_to_restore, fold_name)
+    
+    full_list = polit_list+prob_list+relig_list    
+    
+    if 0 :
+      # JWRUS list only
+      jw_only_tag_list =  get_list_function(jw_tag_url, try_to_restore, fold_name, 1)
+      jw_only_list = [ i for i in relig_list+prob_list if (i['prisoner_link'] in jw_only_tag_list ) ]
+      parsepzk_common_functions.print_bot_list( jw_only_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
+      # Jurnalist list
+      descr_journalist_list  = [ i for i in full_list if 'журналист' in i['prisoner_desc'] ]
+      descr_journalist_list += [ i for i in full_list if 'блогер'    in i['prisoner_desc'] ]
+      descr_journalist_list += [ i for i in full_list if 'блоггер'   in i['prisoner_desc'] ]
+      parsepzk_common_functions.print_simle_list( descr_journalist_list, 'markdown', os.path.join(fold_name, "journ_list.txt"))
+    else :
+      antiw_list  = get_list_function(antiw_page_url, try_to_restore, fold_name)
+      antiw_tag_list = [ i['prisoner_link'] for i in antiw_list ]
+      
+      # case207_3_list = get_list_function(case_207_3_1, 1) + get_list_function(case_207_3_2, 1)
+      # krym_tag_list=get_list_function(krym_tag_url, 1)
+      relig_tag_list  = get_list_function(relig_tag_url , try_to_restore, fold_name, 1)
+      muslim_tag_list = get_list_function(muslim_tag_url, try_to_restore, fold_name, 1)
+      hizb_tag_list   = get_list_function(hizb_tag_url  , try_to_restore, fold_name, 1)
+      
+      antiw_svb_list = [ i for i in full_list if (i['prisoner_link'] in antiw_tag_list ) ]
+      probp_svb_list = [ i for i in prob_list if (i['prisoner_link'] not in muslim_tag_list + relig_tag_list + hizb_tag_list + antiw_tag_list) ]
+      probr_svb_list = [ i for i in prob_list if (i['prisoner_link'] in     muslim_tag_list + relig_tag_list + hizb_tag_list) ]
+      
+      polit_svb_list = [ i for i in polit_list if not (i['prisoner_link'] in antiw_tag_list)]
+      polit_svb_list = polit_svb_list + probp_svb_list
+      relig_svb_list = relig_list + probr_svb_list
+      
+      for i in antiw_svb_list :
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+      for i in polit_svb_list :
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+      for i in relig_svb_list :
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+      
+      parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
+      parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
+      parsepzk_common_functions.print_bot_list( relig_svb_list, 'markdown', os.path.join(fold_name, "relig_list.txt"))
+     
   # if args.descr:
     # print(args.descr)
     # 
