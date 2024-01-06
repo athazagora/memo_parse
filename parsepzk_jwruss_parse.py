@@ -14,9 +14,11 @@ import parsepzk_proxy_functions
 
 def parse_prisoner_link(url, session):
   
-  r = session.get(url, timeout=1.5)  
+  # r = session.get(url, timeout=1.5) 
+  
+  r = requests.get(url)
   r.encoding = r.apparent_encoding
-  soup = BeautifulSoup(r.text, 'html.parser')
+  soup = BeautifulSoup(r.text, 'html.parser') 
   
    # <div class="prisoner-card__info">
    # <var class="fw-bold">ФИО</var>:
@@ -59,7 +61,8 @@ def parse_jwrussia_url(url, use_proxy):
   else:
     rememb_session = requests
     
-  r = rememb_session.get(url, timeout=1.5)
+  # r = rememb_session.get(url, timeout=1.5)
+  r = requests.get(url)
   r.encoding = r.apparent_encoding
   soup = BeautifulSoup(r.text, 'html.parser')
   
@@ -107,6 +110,8 @@ def parse_jwrussia_url(url, use_proxy):
 
 def top (fold_name, use_proxy):
   url = "https://jw-russia.org/prisoners.html"
+  url = "https://dgoj30r2jurw5.cloudfront.net/prisoners.html"
+  # url = "https://dgoj30r2jurw5.cloudfront.net/"
   prisoner_list = parse_jwrussia_url(url, use_proxy)
   prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
   prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
