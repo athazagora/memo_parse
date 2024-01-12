@@ -153,7 +153,7 @@ def bot_description_maker_function(url, file_name=None):
   return 0
   
 
-def top (fold_name, try_to_restore = 1):
+def top (fold_name, try_to_restore = 1, truncated = 0, test_mode = 0):
 
   polit_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-bez-presleduemyh-za-religiyu/page/'
   relig_url='https://memopzk.org/list-persecuted/spisok-politzaklyuchyonnyh-presleduemyh-za-religiyu/page/'
@@ -172,16 +172,16 @@ def top (fold_name, try_to_restore = 1):
   
   prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
 
-  test_case = 0
-  if test_case:
+  if test_mode:
     polit_list = get_list_function(polit_url, try_to_restore, fold_name)
     prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
     
-    one_list = [ i for i in polit_list if (i['prisoner_name'] == "Сапаров Николай Владимирович")]
+    one_list = [ i for i in polit_list if (i['prisoner_name'] == "Петрова Виктория Руслановна")]
     
     for item in one_list:
       print (item)
-      item['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( item['prisoner_addr'], prison_list[460:467])
+      item['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( item['prisoner_addr'], prison_list)
+      print (item['prisoner_addr'])
     print ("")
 
   else :
@@ -221,11 +221,11 @@ def top (fold_name, try_to_restore = 1):
       relig_svb_list = relig_list + probr_svb_list
       
       for i in antiw_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       for i in polit_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       for i in relig_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list)
+        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       
       parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
       parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))
