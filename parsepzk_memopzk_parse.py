@@ -7,6 +7,7 @@ import re
 import os
 
 import parsepzk_common_functions
+import parsepzk_prison_functions
 
 import pickle
 
@@ -170,17 +171,17 @@ def top (fold_name, try_to_restore = 1, truncated = 0, test_mode = 0):
   hizb_tag_url='https://memopzk.org/tags/hizb-ut-tahrir/page/'
   jw_tag_url='https://memopzk.org/tags/presledovanie-svidetelej-iegovy/page/'
   
-  prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
+  prison_list = parsepzk_prison_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
 
   if test_mode:
     polit_list = get_list_function(polit_url, try_to_restore, fold_name)
-    prison_list = parsepzk_common_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
+    prison_list = parsepzk_prison_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
     
     one_list = [ i for i in polit_list if (i['prisoner_name'] == "Петрова Виктория Руслановна")]
     
     for item in one_list:
       print (item)
-      item['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( item['prisoner_addr'], prison_list)
+      item['prisoner_addr'] = parsepzk_prison_functions.find_max_compare ( item['prisoner_addr'], prison_list)
       print (item['prisoner_addr'])
     print ("")
 
@@ -206,13 +207,13 @@ def top (fold_name, try_to_restore = 1, truncated = 0, test_mode = 0):
       antiw_list  = get_list_function(antiw_page_url, try_to_restore, fold_name)
       antiw_tag_list = [ i['prisoner_link'] for i in antiw_list ]
       
-      # case207_3_list = get_list_function(case_207_3_1, 1) + get_list_function(case_207_3_2, 1)
+      case207_3_list = get_list_function(case_207_3_1, 1) + get_list_function(case_207_3_2, 1)
       # krym_tag_list=get_list_function(krym_tag_url, 1)
       relig_tag_list  = get_list_function(relig_tag_url , try_to_restore, fold_name, 1)
       muslim_tag_list = get_list_function(muslim_tag_url, try_to_restore, fold_name, 1)
       hizb_tag_list   = get_list_function(hizb_tag_url  , try_to_restore, fold_name, 1)
       
-      antiw_svb_list = [ i for i in full_list if (i['prisoner_link'] in antiw_tag_list ) ]
+      antiw_svb_list = [ i for i in full_list if (i['prisoner_link'] in antiw_tag_list + case207_3_list) ]
       probp_svb_list = [ i for i in prob_list if (i['prisoner_link'] not in muslim_tag_list + relig_tag_list + hizb_tag_list + antiw_tag_list) ]
       probr_svb_list = [ i for i in prob_list if (i['prisoner_link'] in     muslim_tag_list + relig_tag_list + hizb_tag_list) ]
       
@@ -221,11 +222,11 @@ def top (fold_name, try_to_restore = 1, truncated = 0, test_mode = 0):
       relig_svb_list = relig_list + probr_svb_list
       
       for i in antiw_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
+        i['prisoner_addr'] = parsepzk_prison_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       for i in polit_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
+        i['prisoner_addr'] = parsepzk_prison_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       for i in relig_svb_list :
-        i['prisoner_addr'] = parsepzk_common_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
+        i['prisoner_addr'] = parsepzk_prison_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
       
       parsepzk_common_functions.print_bot_list( antiw_svb_list, 'markdown', os.path.join(fold_name, "antiw_list.txt"))
       parsepzk_common_functions.print_bot_list( polit_svb_list, 'markdown', os.path.join(fold_name, "polit_list.txt"))

@@ -62,212 +62,6 @@ def catch_birth_date_old(prisoner_list):
 
   return prisoner_list
 
-def create_prison_dict (file_name):
-  is_debug = 0
-  results = []
-  tmp_list = []
-  
-  df = pd.read_excel(file_name, 0) # can also index sheet by name or fetch all sheets
-  tmp_list = df.values.tolist()
-  for item in tmp_list: item = [str(s).strip() for s in item]
-  fku_id = 0
-  for item in tmp_list:
-    address_parts = re.split(',|\(|\)', item[4])
-    address_parts = [s for s in address_parts if s != '']
-    # print (address_parts)
-    address_parts = [re.sub(r'^ул\. |^г\. |^мкр\. |^д\. |^зд\. |^п\. |^пер\. |^с\. |^бул\. |^стр\. |^р\. п\.  |^ш\. |^пгт |проезд$|квартал ', '', s.strip()) for s in address_parts]
-    address_parts = [re.sub(r'—|–|−|-', '-', s.upper()) for s in address_parts]
-    address_parts = [re.sub('Ё', 'Е', s)                for s in address_parts]
-    address_parts = [re.sub(r'САЛАВАТ−6', 'САЛАВАТ', s) for s in address_parts]
-    
-    results.append({
-      'fku_id'      : fku_id,
-      'fku_reg'     : item [0],
-      'fku_type'    : str(item [1]),
-      'fku_num'     : str(item [2]),
-      'fku_addr'    : item [4],
-      'addr_parts'  : address_parts,
-      'fku_fsin'    : "",
-      'fku_name'    : "",
-      'fku_reg_d'   : ""
-    })
-    fku_id += 1
-
-  df = pd.read_excel(file_name, 1) # can also index sheet by name or fetch all sheets
-  tmp_list = df.values.tolist()
-  for item in tmp_list: item = [str(s).strip() for s in item]
-  
-  for i in results:
-    if i['fku_type'] == "СИЗО (ц. п.)" :
-      i['fku_fsin'] = "ФСИН России"
-      i['fku_name'] = f"СИЗО-{i['fku_num']}"
-    else:
-      for item in tmp_list:
-        if i['fku_reg'].strip().upper() == item[0].strip().upper() : 
-          i['fku_fsin'] = item[1].strip()
-          if i['fku_num'] == "б/н" :
-            i['fku_name'] = i['fku_type']
-          else :
-            i['fku_name'] = i['fku_type'] + "-" + i['fku_num']
-      if i['fku_fsin'] == "" or i['fku_name'] == "" : print (i)
-    i['fku_reg_d'] = re.sub(r".*РОССИИ ПО ", "", i['fku_fsin'].upper())
-    i['fku_reg_d'] = re.sub(r'—|–|−|-', '-', i['fku_reg_d'])
-  
-  df = pd.read_excel(file_name, 2) # can also index sheet by name or fetch all sheets
-  tmp_list = df.values.tolist()
-  for item in tmp_list: item = [str(s).strip() for s in item]
-  
-  for i in results:
-    for item in tmp_list:
-      if i['fku_reg'].strip().upper() == item[0].strip().upper() :
-        if is_debug: 
-          print ("++++++++++++++++")
-          print (i)
-          print (item)
-        last = 0
-        while last < len(item) and not pd.isna(item[last]) : last+=1
-        excid_arr = [item[last-2], item[last-1]]
-        if is_debug: 
-          print (excid_arr)
-        
-        if re.search(fr"{excid_arr[0]}.*{excid_arr[1]}(,|$)", i['fku_addr']) :
-          i['fku_addr'] = re.sub(f"{excid_arr[0]}, ", "", i['fku_addr'])
-          if is_debug: 
-            print (excid_arr[0]+".*"+excid_arr[1])
-            print ("result :", i['fku_addr'])
-          
-        
-        # i['fku_short_addr'] = item[1].strip()
-    # if i['fku_fsin'] == "" : print (i)
-  
-  return results
-
-
-def part_comparsion (part, int_arr, index_string, address_string, is_debug = 0):
-  compare_num = 0
-  
-  if part.isnumeric() :
-    compare_num += part in int_arr
-    compare_num += int(part) == int(index_string)
-    if is_debug:
-      print ("num : ", compare_num, " : ", part, " in string :", index_string, int_arr )
-  else :
-    if re.search(fr"{part}\b", address_string): compare_num += 1
-    if is_debug:
-      print ("char: ", compare_num, " : \"" + part + "\" is part of :", address_string)
-  return compare_num
-  
-
-
-def find_max_compare (init_address_string, prison_list, truncated = 0):
-  is_debug = 0
-  
-  waigth_id_list = []
-  # print ("MAX : ", address_string )
-  prepared_address_string = init_address_string ;
-  
-  prepared_address_string = re.sub(r'—|–|−|-', '-', prepared_address_string.upper())  #defis
-  prepared_address_string = re.sub(r'«|"|»'  , ' ', prepared_address_string)          #quotes
-  prepared_address_string = re.sub('Ё'       , 'Е', prepared_address_string)          #ё
-  prepared_address_string = re.sub(r'(\d+) (\w{1},)'  , r'\1\2', prepared_address_string) # one letter after num, like д. 24 Б
-  prepared_address_string = re.sub(r'^(\d{3}) (\d{3})', r'\1\2', prepared_address_string) # index in one number
-
-  prepared_address_string = re.sub(r'ПО (.*) ОБЛ\b'                   , r'ПО \1 ОБЛАСТИ'       , prepared_address_string)
-  prepared_address_string = re.sub(r'\sИСПРАВИТЕЛЬНАЯ\sКОЛОНИЯ\s'        , ' ИК '              , prepared_address_string)
-  prepared_address_string = re.sub(r'\sСЛЕДСТВЕННЫЙ\sИЗОЛЯТОР\s'         , ' СИЗО '            , prepared_address_string)
-  prepared_address_string = re.sub(r'ТЮРЬМА\b'                        , 'Т'                 , prepared_address_string)
-  prepared_address_string = re.sub(r'(СИЗО|ИК|Т|ЛИУ|КП|ОИК)\b\s№?\s?(\d+)' , r"\1-\2"        , prepared_address_string)
-  
-  prepared_address_string = re.sub(r'УФСИН(.*)\sПО\s(.*)РЕСПУБЛИКИ'            , r'УФСИН\1 ПО \2РЕСПУБЛИКЕ'               , prepared_address_string)
-  
-  prepared_address_string = re.sub(r'ПО (Г\. )?САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ|ПО СПБ И ЛО' , "ПО Г. САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ"     , prepared_address_string)
-  prepared_address_string = re.sub(r'ПО РЕСПУБЛИКЕ КРЫМ И Г\.? СЕВАСТОПОЛЬ'    , 'ПО РЕСПУБЛИКЕ КРЫМ И Г. СЕВАСТОПОЛЮ'   , prepared_address_string)
-  prepared_address_string = re.sub(r'ПО ЧУВАШИИ|ПО ЧУВАШСКОЙ РЕСПУБЛИКЕ|ПО ЧР' , 'ПО ЧУВАШСКОЙ РЕСПУБЛИКЕ - ЧУВАШИИ'     , prepared_address_string)
-  prepared_address_string = re.sub(r'ПО УДМУРТИИ|ПО РЕСПУБЛИКЕ УДМУРТИЯ|ПО УР' , 'ПО УДМУРТСКОЙ РЕСПУБЛИКЕ'              , prepared_address_string)
-  prepared_address_string = re.sub(r'ПО ХМАО'                                  , 'ПО ХМАО - ЮГРЕ'                        , prepared_address_string)
-  prepared_address_string = re.sub(r'ПО ЯНАО'                                  , 'ПО ЯМАЛО-НЕНЕЦКОМУ АВТОНОМНОМУ ОКРУГУ' , prepared_address_string)
-  
-  index_string = re.findall(r'\d{6}', prepared_address_string)
-  if len (index_string) > 0 :
-    cleaned_address_string = re.sub(index_string[0] , '', prepared_address_string)
-    index_string = index_string[0].strip()
-  else :
-    cleaned_address_string = prepared_address_string
-    index_string = -1
-  
-  if is_debug: 
-    print ("prepared_address_string string: ", prepared_address_string )
-  
-  fku_string = re.findall(r'\sСИЗО\b-? ?\d+|\sИК\b-? ?\d+|\sКП\b-? ?\d+|\sТ\b-? ?\d+|\sЛИУ\b-? ?\d+|\sТ\b', cleaned_address_string)
-  if len (fku_string) == 0 :
-    if is_debug: print ("Not found fku_type in \"", init_address_string, "\"")
-    return init_address_string
-  
-  if is_debug: print ("fku_string", fku_string)
-  cleaned_address_string = re.sub(fku_string[0] , '', cleaned_address_string)
-  fku_string = fku_string[0].strip()
-  
-  int_arr = re.findall(r'\d+', cleaned_address_string)
-  
-  if is_debug: 
-    print ("Reserched string: ", init_address_string )
-    print ("Extracted fku_string : ", fku_string)
-    print ("Extracted index_string : ", index_string)
-    print (int_arr)
-    print ("curent string: ", cleaned_address_string)
-    print ("++++++++++++++++")
-  
-  pattern_found = 0
-  for item in prison_list:
-    compare_num = 0
-    
-    if re.search(fr"{item['fku_name']}\b.*\s{item['fku_reg_d']}\b|{item['fku_reg'].upper()}\b.*{item['fku_name']}\b", prepared_address_string):
-      compare_num += 10
-      pattern_found |= 1
-      if is_debug: print (compare_num, " : ", prepared_address_string, " : pattern find : ", item['fku_name'], " по ", item['fku_reg_d'])
-    else:
-      compare_num += fku_string == item['fku_name']
-      if is_debug: print (compare_num, " : ", fku_string, " == ", item['fku_name'] )
-      compare_num += cleaned_address_string.find(item['fku_reg'].upper()) > 0
-      if is_debug: print (compare_num, " : ", cleaned_address_string, " : ", item['fku_reg'].upper())
-    
-    for part in item ['addr_parts']: 
-      compare_num += part_comparsion (part, int_arr, index_string, cleaned_address_string, is_debug)
-    
-    waigth_id_list.append({
-      'fku_id'      : item['fku_id'],
-      'fku_addr'    : item['fku_addr'] + ", ФКУ " + item['fku_name'] + " " + item['fku_fsin'],
-      'fku_addr_d'  : "ФКУ " + item['fku_name'] + " " + item['fku_fsin'],
-      'fku_waigth'  : compare_num
-    })
-  
-  waigth_list = [ i['fku_waigth'] for i in waigth_id_list ]
-  max_id_list = [ i for i in waigth_id_list if i['fku_waigth'] == max ( waigth_list ) ]
-  if truncated:
-    result_addr = max_id_list[0]['fku_addr_d']
-  else:
-    result_addr = max_id_list[0]['fku_addr']
-  
-  if len (max_id_list) != 1 : 
-    print ("More then one case for reserched string: ", init_address_string )
-    print ("Extracted fku_string : ", fku_string)
-    print ("Extracted index_string : ", index_string)
-    print (int_arr)
-    print ("curent string: ", cleaned_address_string)
-    if (max_id_list[0]['fku_waigth'] < 5): result_addr = init_address_string
-    print ("return string: ", result_addr)
-    print ("----------------")
-  
-  if pattern_found != 1 :
-    print ("Pattern not found for reserched string: ", init_address_string )
-    print ("Extracted fku_string : ", fku_string)
-    print ("Extracted index_string : ", index_string, int_arr)
-    print ("curent string: ", cleaned_address_string)
-    print ("++++++++++++++++")
-  
-  
-  return result_addr
-
 
 # PATTERN = r'[р|Р]одил[а-я]*\s+(?P<day_1>\d{1,2})\s+(?P<month_1>[а-яА-Я]+)\s+(?P<year_1>\d{4})|(?P<day_2>\d{1,2})\s+(?P<month_2>[а-яА-Я]+)\s+(?P<year_2>\d{4})\s+года рождения|родил(ся|ась)\s+в\s+(?P<year_3>\d{4})\s+году|(?P<year_4>\d{4})\s+г\.\s?р\.'
 # PATTERN_WRAPPED = (
@@ -351,109 +145,68 @@ def get_birthdate_from_text(text: str) -> str:
 
 
 def clean_fields_from_exceed(prisoner_list):
+  genitive_dict = { 'Азат'      : 'Азату',        'Адам'        : 'Адаму',        'Айдар'     : 'Айдару',       'Айрат'     : 'Айрату',
+                    'Александр' : 'Александру',   'Андрей'      : 'Андрею',       'Алексей'   : 'Алексею',      'Аслан'     : 'Аслану',
+                    'Алим'      : 'Алиму',        'Альберт'     : 'Альберту',     'Анзор'     : 'Анзору',       'Артур'     : 'Артуру',
+                    'Багаудин'  : 'Багаудину',    'Вадим'       : 'Вадиму',       'Владимир'  : 'Владимиру',    'Вячеслав'  : 'Вячеславу',
+                    'Василий'   : 'Василию',      'Виктор'      : 'Виктору',      'Дамир'     : 'Дамиру',       'Данис'     : 'Данису',
+                    'Данил'     : 'Данилу',       'Дмитрий'     : 'Дмитрию',      'Зафар'     : 'Зафару',       'Завур'     : 'Завуру',
+                    'Илфат'     : 'Илфату',       'Ильсур'      : 'Ильсуру',      'Ильгиз'    : 'Ильгизу',      'Имран'     : 'Имрану',
+                    'Инял'      : 'Инялу',        'Ирек'        : 'Иреку',        'Ислам'     : 'Исламу',       'Линар'     : 'Линару',
+                    'Ленар'     : 'Ленару',       'Мухамадюсуп' : 'Мухамадюсупу', 'Марлен'    : 'Марлену',      'Наиль'     : 'Наилю',
+                    'Нурмагомед': 'Нурмагомеду',  'Павел'       : 'Павлу',        'Радик'     : 'Радику',       'Радмир'    : 'Радмиру',
+                    'Раиф'      : 'Раифу',        'Рафаэль'     : 'Рафаэлю',      'Рефат'     : 'Рефату',       'Ринат'     : 'Ринату',
+                    'Рифат'     : 'Рифату',       'Рафис'       : 'Рафису',       'Рузим'     : 'Рузиму',       'Руслан'    : 'Руслану',
+                    'Рустем'    : 'Рустему',      'Салех'       : 'Салеху',       'Сергей'    : 'Сергею',       'Тимур'     : 'Тимуру',
+                    'Туратбек'  : 'Туратбеку',
+                    'Тагир'     : 'Тагиру',       'Тажиб'       : 'Тажибу',       'Урал'      : 'Уралу',        'Фанис'     : 'Фанису',
+                    'Фарид'     : 'Фариду',       'Фаррух'      : 'Фарруху',      'Шамиль'    : 'Шамилю',       'Шахбоз'    : 'Шахбозу',
+                    'Шафкат'    : 'Шафкату',      'Эрфан'       : 'Эрфану',       'Эрсмак'    : 'Эрсмаку',      'Юрий'      : 'Юрию',
+                    'Ян'        : 'Яну' }
+  
   for field in prisoner_list:
     # delete exceed word
-    field['prisoner_name'] = re.sub('\(.+\) ', '', field['prisoner_name'])
-    field['prisoner_name'] = re.sub(' +', ' ', field['prisoner_name'])
-    # find grad
-    name = field['prisoner_name'].split()
-
+    # field['prisoner_name'] = re.sub(r'w+\s', '', field['prisoner_name'])
+    # field['prisoner_name'] = re.sub(r'\s+', ' ', field['prisoner_name'])
+    # # find grad
+    # name = field['prisoner_name'].split()
+    
+    name = re.split(r'[\s()]', field['prisoner_name'])
+    name = [s for s in name if s != '']
+    print ("name:", name)
     # print (name, field['prisoner_addr'])
 
-    if len(name) > 2:
+    if len(name) >= 2:
       for i in range(2): 
-        if len(name[i]) > 3 : name[i] = name[i][0:-2] + ".+"
-          
-      find_grad = ''.join(re.findall(name[0]+" "+name[1], field['prisoner_addr'])).split()
-      # print (find_grad)
-      if len(find_grad) > 1:
+        if len(name[i]) >  3 : name[i] = name[i][0:-2]
+        if len(name[i]) == 3 : name[i] = name[i][0:-1]
+      
+      name = [re.sub(r'[её]', '[её]', s) for s in name]
+      print (name)
+      find_grad = ''.join(re.findall(fr'{name[0]}\w*\s{name[1]}\w+', field['prisoner_addr'])).split()
+      print (find_grad)
+      
+      if len(find_grad) >=2 :
         # print (field['prisoner_addr'])
         field['prisoner_grad'] = find_grad[1] + " " + find_grad [0]
         field['prisoner_addr'] = field['prisoner_addr'].split(find_grad[0], 1)[0]
-        field['prisoner_grad'] = re.sub('Азат ', 'Азату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Адам ', 'Адаму ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Айдар ', 'Айдару ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Айрат ', 'Айрату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Александр ', 'Александру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Андрей ', 'Андрею ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Алексей ', 'Алексею ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Аслан ', 'Аслану ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Алим ', 'Алиму ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Альберт ', 'Альберту ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Анзор ', 'Анзору ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Артур ', 'Артуру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Багаудин ', 'Багаудину ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Вадим ', 'Вадиму ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Владимир ', 'Владимиру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Вячеслав ', 'Вячеславу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Василий ', 'Василию ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Виктор ', 'Виктору ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Дамир ', 'Дамиру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Данис ', 'Данису ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Данил ', 'Данилу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Дмитрий ', 'Дмитрию ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Зафар ', 'Зафару ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Завур ', 'Завуру ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Илфат ', 'Илфату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ильсур ', 'Ильсуру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ильгиз ', 'Ильгизу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Имран ', 'Имрану ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Инял ', 'Инялу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ирек ', 'Иреку ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ислам ', 'Исламу ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Линар ', 'Линару ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ленар ', 'Ленару ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Мухамадюсуп ', 'Мухамадюсупу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Марлен ', 'Марлену ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Наиль ', 'Наилю ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Нурмагомед ', 'Нурмагомеду ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Павел ', 'Павлу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Радик ', 'Радику ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Радмир ', 'Радмиру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Раиф ', 'Раифу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рафаэль ', 'Рафаэлю ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рефат ', 'Рефату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ринат ', 'Ринату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рифат ', 'Рифату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рафис ', 'Рафису ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рузим ', 'Рузиму ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Руслан ', 'Руслану ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Рустем ', 'Рустему ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Салех ', 'Салеху ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Сергей ', 'Сергею ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Тимур ', 'Тимуру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Тагир ', 'Тагиру ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Тажиб ', 'Тажибу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Урал ', 'Уралу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Фанис ', 'Фанису ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Фарид ', 'Фариду ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Фаррух ', 'Фарруху ', field['prisoner_grad'])
-        
-        field['prisoner_grad'] = re.sub('Шамиль ', 'Шамилю ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Шахбоз ', 'Шахбозу ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Шафкат ', 'Шафкату ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Эрфан ', 'Эрфану ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Эрсмак ', 'Эрсмаку ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Юрий ', 'Юрию ', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub('Ян ', 'Яну ', field['prisoner_grad'])
+      else :
+        field['prisoner_grad'] = name[-2] + " " + name[0]
+      
+      for key in genitive_dict :
+        field['prisoner_grad'] = re.sub(fr'\b{key}\b', fr'{genitive_dict[key]}', field['prisoner_grad'])
 
-        field['prisoner_grad'] = re.sub(r'ов$', 'ову', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'ев$', 'еву', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'ёв$', 'ёву', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'ин$', 'ину', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'ун$', 'уну', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'кий$', 'кому', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'Шохиста Каримова', 'Шохисте Каримовой', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'Матлюба Насимова', 'Матлюбе Насимовой', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'Виктору Шур', 'Виктору Шуру', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'Берчук$', 'Берчуку', field['prisoner_grad'])
-        field['prisoner_grad'] = re.sub(r'Юрию Корный', 'Юрию Корному', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'ов$', 'ову', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'ев$', 'еву', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'ёв$', 'ёву', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'ин$', 'ину', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'ун$', 'уну', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'кий$', 'кому', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'Шохиста Каримова', 'Шохисте Каримовой', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'Матлюба Насимова', 'Матлюбе Насимовой', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'Виктору Шур', 'Виктору Шуру', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'Берчук$', 'Берчуку', field['prisoner_grad'])
+      field['prisoner_grad'] = re.sub(r'Юрию Корный', 'Юрию Корному', field['prisoner_grad'])
 
     # field['prisoner_addr'] = field['prisoner_addr'].split("ФИО, год рождения.','', field['prisoner_addr'])
 
@@ -604,10 +357,22 @@ def get_one_month_list(prisoner_list, month):
   return month_list
 
 
-def make_fio_gr_addr_form (line, suff=""):
-  line = re.sub(r"^\[(.*)\]\(.*\) `(.*) г.р.` :addr_delim:.*:addr_delim:", r'[\1] ::: \2 ::: ', line)
-  line = re.sub(r"\s+", " ", line)
-  line = re.sub(r"::: \d+\.\d+.(\d+) :::", r"::: \1 :::", line)
-  line = re.sub('ё', 'е', line)
-  line = re.sub(r"$", suff, line)
-  return line
+def unified_list_file (input_file, output_file):
+  suff=""
+  line = input_file.readline()
+  while line :
+    line = re.sub(r"^\[(.*)\]\(.*\) `(.*) г.р.` :addr_delim:.*:addr_delim:", r'[\1] ::: \2 ::: ', line)
+    line = re.sub(r"\s+", " ", line)
+    line = re.sub(r"::: \d+\.\d+.(\d+) :::", r"::: \1 :::", line)
+    line = re.sub('ё', 'е', line)
+    line = re.sub(r"$", suff, line)
+    print (line, file=output_file)
+    line = input_file.readline()
+
+def sort_lines_in_file (input_file, output_file):
+  with open(input_file,'r') as first_file:
+    rows = first_file.readlines()
+    sorted_rows = sorted(rows, key=lambda x: x.split()[0], reverse=False)
+    with open(output_file,'w') as second_file:
+      for row in sorted_rows:
+        second_file.write(row)

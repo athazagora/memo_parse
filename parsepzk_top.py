@@ -15,11 +15,13 @@ import parsepzk_memopzk_parse
 import parsepzk_krymsol_parse
 import parsepzk_jwruss_parse
 import parsepzk_oi_parse
+import parsepzk_rs_parse
+import parsepzk_bot_parse
 import parsepzk_common_functions
 
 
 parser = argparse.ArgumentParser(description="Example of a single flag acting as a boolean and an option.")
-parser.add_argument("-l", "--list", choices=["mm", "ks", "jw", "oi", "all"], default="", help="get classic format list")
+parser.add_argument("-l", "--list", choices=["mm", "ks", "jw", "oi", "rs", "bot", "all"], default="", help="get classic format list")
 parser.add_argument("-k", "--knock", default="", action="store_true", help="knock into one")
 parser.add_argument("-c", "--compare", default="", action="store_true", help="compare all parsed")
 parser.add_argument("-use_proxy"  , "--use_proxy",default="", action="store_true", help="not use proxy fo jw_russia")
@@ -40,7 +42,7 @@ else: try_to_restore = 1
 if args.test: is_test = 1
 else: is_test = 0
 
-if args.test: is_truncated = 1
+if args.truncated: is_truncated = 1
 else: is_truncated = 0
 
 
@@ -62,6 +64,12 @@ if args.list:
   if args.list in ["oi", "all"] :
     print ("Parse oi")
     parsepzk_oi_parse.top(fold_name)
+  if args.list in ["rs", "all"] :
+    print ("Parse rs")
+    parsepzk_rs_parse.top(fold_name)
+  if args.list in ["bot", "all"] :
+    print ("Parse bot")
+    parsepzk_bot_parse.top(fold_name, truncated = is_truncated)
 
 if args.knock:
   fold_name = "list_" + datetime.strftime(datetime.today(), "%Y.%m.%d")
@@ -108,34 +116,47 @@ if args.compare:
   else:
     print("Go to folder \"" + fold_name + "\"")
     expected_list = ["relig_list.txt", "polit_list.txt", "antiw_list.txt", "oi_list.txt"]
+    # expected_list = ["relig_list.txt", "rs_list.txt"]
     
     mm_out_file = open("memo_all.txt", 'w')
     oi_out_file = open("oi_all.txt", 'w')
+    rs_out_file = open("rs_all.txt", 'w')
+    bt_out_file = open("bt_all.txt", 'w')
       
     for filename in os.listdir(fold_name):
-      print (filename)
 
       # mem
-      if filename in ["relig_list.txt", "polit_list.txt", "antiw_list.txt"]:
+      if filename in ["relig_list.txt", "polit_list.txt", "antiw_list.txt" ]:
+        print (filename)
         with open(os.path.join(fold_name, filename), 'r') as f:
-          line = f.readline()
-          while line :
-            line = parsepzk_common_functions.make_fio_gr_addr_form(line)
-            print (line, file=mm_out_file)
-            line = f.readline()
-      
+          parsepzk_common_functions.unified_list_file (f, mm_out_file)
+                
+      # rs
+      if filename in ["rs_list.txt"]:
+        print (filename)
+        with open(os.path.join(fold_name, filename), 'r') as f:
+          parsepzk_common_functions.unified_list_file (f, rs_out_file)
       
       # oi
       if filename in ["oi_list.txt"]:
+        print (filename)
         with open(os.path.join(fold_name, filename), 'r') as f:
-          line = f.readline()
-          while line :
-            line = parsepzk_common_functions.make_fio_gr_addr_form(line)
-            print (line, file=oi_out_file)
-            line = f.readline()
+          parsepzk_common_functions.unified_list_file (f, oi_out_file)
+          
+      # bot
+      if filename in ["bot_list.txt" ]:
+        print (filename)
+        with open(os.path.join(fold_name, filename), 'r') as f:
+          parsepzk_common_functions.unified_list_file (f, bt_out_file)
+          
     
     mm_out_file.close()
     oi_out_file.close()
+    rs_out_file.close()
+    bt_out_file.close()
+    
+    parsepzk_common_functions.sort_lines_in_file("memo_all.txt", "memo_all_sort.txt")
+    parsepzk_common_functions.sort_lines_in_file("bt_all.txt", "bt_all_sort.txt")
 
 # sed 's/\(\[.*]\)(.*) `\(.*\) г\.р\..*:addr_delim:.*:addr_delim:/\1 \2 :::/' list.txt | sed 's/:::.*ФКУ/ ФКУ/' | sort > full_svobot_list.txt
 
