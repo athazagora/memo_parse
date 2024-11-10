@@ -10,6 +10,7 @@ import os
 
 import parsepzk_common_functions
 import parsepzk_proxy_functions
+import parsepzk_prison_functions
 
 
 def parse_prisoner_link(url, session):
@@ -34,16 +35,18 @@ def parse_prisoner_link(url, session):
     clean_tmp_text = re.sub("[a-zA-Z,]", '', clean_tmp_text)
     
     # print ("clean2:\n" + clean_tmp_text)
-    if 'ФИО' in clean_tmp_text:
-      prisoner_full_name = clean_tmp_text.split("ФИО: ")[1]
+    if 'ФИО:' in clean_tmp_text:
+      prisoner_full_name = clean_tmp_text.split("ФИО:")[1]
           
-    if 'Год рождения' in clean_tmp_text:
-      prisoner_byear = clean_tmp_text.split("Год рождения: ")[1]
-    
-    if 'Текущее местонахождение' in clean_tmp_text:
-      prisoner_addr = clean_tmp_text.split("Текущее местонахождение: ")[1]
+    if 'Дата рождения:' in clean_tmp_text:
+      prisoner_byear = clean_tmp_text.split("Дата рождения:")[1]
+      prisoner_byear = parsepzk_common_functions.get_birthdate_from_date(prisoner_byear)
+      # print (prisoner_byear)
+    if 'Текущее местонахождение:' in clean_tmp_text:
+      prisoner_addr = clean_tmp_text.split("Текущее местонахождение:")[1]
       # print ("addr: " + prisoner_addr)
       prisoner_addr = re.sub("^\s+|\n|\r|\s+$", '', prisoner_addr)
+      if (prisoner_addr != "not parsed") : prisoner_addr = "ФКУ " + prisoner_addr
 
   # print ("prisoner_name: " + prisoner_full_name)
   # print ("prisoner_date: " + prisoner_byear)
@@ -70,11 +73,16 @@ def parse_jwrussia_url(url, use_proxy):
   items = soup.find_all('div', {'class': 'prisoner'})
   for item in items:
     # prisoner_verdict = item.get('data-verdict')
-    prisoner_status = item.get('data-status')
+    # print (item)
+    prisoner_status = item.get('data-verdict')
+    if prisoner_status=='' : prisoner_status = item.get('data-restriction')
     
+    print (prisoner_status)
     # <div class="prisoner__name">
-    prisoner_name = item.find('div', {'class': 'prisoner__name'}).find('span', {'class', 'lang-only wg-no-translate'}).text
-    prisoner_name = re.sub("^\s+|\n|\r|\s+$", '', prisoner_name)
+    prisoner_name = item.find('div', {'class': 'prisoner__name'}).find('span')
+    # print (prisoner_name)
+    for br in prisoner_name.find_all("br"): br.replace_with(" ")
+    prisoner_name = prisoner_name.text
     prisoner_name = re.sub("\s+", ' ', prisoner_name)
     print (prisoner_name)
     
@@ -108,11 +116,20 @@ def parse_jwrussia_url(url, use_proxy):
   return results
 
 
-def top (fold_name, use_proxy):
+def top (fold_name, use_proxy=0, truncated = 0):
   url = "https://jw-russia.org/prisoners.html"
   url = "https://dgoj30r2jurw5.cloudfront.net/prisoners.html"
   # url = "https://dgoj30r2jurw5.cloudfront.net/"
+  prison_list = parsepzk_prison_functions.create_prison_dict ( "parsepzk_prison_database.xls" )
   prisoner_list = parse_jwrussia_url(url, use_proxy)
+  
+  # for i in prisoner_list : print (i)
   prisoner_list = parsepzk_common_functions.set_genrder_bit ( prisoner_list )
   prisoner_list = parsepzk_common_functions.clean_fields_from_exceed ( prisoner_list )
+  for i in prisoner_list :
+    print ("+==============================+\n" + i['prisoner_name'] + ": " + i['prisoner_addr'])
+    i['prisoner_addr'] = parsepzk_prison_functions.find_max_compare ( i['prisoner_addr'], prison_list, truncated)
+    print (i['prisoner_name'] + ": " + i['prisoner_addr'])
+  
   parsepzk_common_functions.print_bot_list( prisoner_list, 'markdown', os.path.join(fold_name, "jw_list.txt"))
+

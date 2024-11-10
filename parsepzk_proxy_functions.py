@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 
 import requests
 import random
-import re
+
+import os, sys, subprocess, time, signal
 
 # functions from : https://waksoft.susu.ru/2021/04/15/kak-v-python-ispolzovat-proksi-dlya-podmeny-ip%E2%80%91adresov/
 
@@ -57,3 +58,40 @@ def get_workable_proxy_for_url (url):
   for s in rememb_session: 
     print ( s.proxies )
     return s
+
+
+def start_openvpn ():
+  path2cfg = os.path.abspath('client19.ovpn')
+  path2log = os.path.abspath('vpn_log.log')
+  process_output = open(path2log, 'w')
+  # log_file.close()
+  
+  with open(path2cfg, "a") as myfile:
+    # print 
+    # myfile.write("\nscript-security 2\nup /etc/openvpn/update-resolv-conf\ndown /etc/openvpn/update-resolv-conf")
+    # myfile.close()
+    process = subprocess.Popen(['sudo','openvpn', '--auth-nocache', '--config', path2cfg], stdout = process_output, stderr = process_output)
+    print (process)
+    print ("PID", process.pid)
+    print ("sleep 90", process.pid)
+    time.sleep(90)
+
+  with open(path2log, "r") as log:
+    if log.read().find('Initialization Sequence Completed') != -1:
+      print("find(Initialization Sequence Completed)")
+      return [process, True]
+    else:
+      print("not find(Initialization Sequence Completed)")
+      return [process, False]
+
+
+def stop_openvpn(process):
+  print(process)
+  print(process.pid)
+  process.kill()
+  pid = process.pid + 1
+  print(pid)
+  while process.poll() != 0:
+    time.sleep(1)
+    return
+    

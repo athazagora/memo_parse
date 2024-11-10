@@ -144,25 +144,79 @@ def get_birthdate_from_text(text: str) -> str:
     return '0'
 
 
+def get_birthdate_from_date(text: str) -> str:
+  """Извлекает дату из текста и возвращает в формате 'd.m.yyyy' """
+
+  PATTERN = (
+    r'(?P<day_1>\d{1,2})\s+(?P<month_1>[а-яА-Я]+)\s+(?P<year_1>\d{4})|'
+    r'(?P<year_4>\d{4})\s+'
+  )
+  MONTHS = {
+    'января': 1,
+    'февраля': 2,
+    'марта': 3,
+    'апреля': 4,
+    'мая': 5,
+    'июня': 6,
+    'июля': 7,
+    'августа': 8,
+    'сентября': 9,
+    'октября': 10,
+    'ноября': 11,
+    'декабря': 12
+  }
+  text_match = re.search(PATTERN, text)
+  # print (text_match)
+  if text_match:
+    # Если в тексте найдена дата рождения полностью
+    if text_match.group('year_1') :
+      day = text_match.group('day_1') 
+      month_str = text_match.group('month_1')
+      year = text_match.group('year_1')
+      try:
+        date = datetime.datetime(
+                    year=int(year),
+                    month=MONTHS[month_str],
+                    day=int(day)
+                ).date()
+        date_str = date.strftime('%d.%m.%Y')
+        # print (date_str)
+        return date_str
+      except Exception:
+        return '0'
+    # Если в тексте найден только год рождения
+    elif text_match.group('year_4'):
+      year = (text_match.group('year_4') or '0')
+      year_str = year
+      return year_str
+  else:
+    return '0'
+
+
 def clean_fields_from_exceed(prisoner_list):
   genitive_dict = { 'Азат'      : 'Азату',        'Адам'        : 'Адаму',        'Айдар'     : 'Айдару',       'Айрат'     : 'Айрату',
                     'Александр' : 'Александру',   'Андрей'      : 'Андрею',       'Алексей'   : 'Алексею',      'Аслан'     : 'Аслану',
                     'Алим'      : 'Алиму',        'Альберт'     : 'Альберту',     'Анзор'     : 'Анзору',       'Артур'     : 'Артуру',
+                    'Ахмед'     : 'Ахмеду',       'Владислав'   : 'Владиславу',   'Осман'     : 'Осману',
                     'Багаудин'  : 'Багаудину',    'Вадим'       : 'Вадиму',       'Владимир'  : 'Владимиру',    'Вячеслав'  : 'Вячеславу',
                     'Василий'   : 'Василию',      'Виктор'      : 'Виктору',      'Дамир'     : 'Дамиру',       'Данис'     : 'Данису',
                     'Данил'     : 'Данилу',       'Дмитрий'     : 'Дмитрию',      'Зафар'     : 'Зафару',       'Завур'     : 'Завуру',
+                    'Игорь'     : 'Игорю',
                     'Илфат'     : 'Илфату',       'Ильсур'      : 'Ильсуру',      'Ильгиз'    : 'Ильгизу',      'Имран'     : 'Имрану',
-                    'Инял'      : 'Инялу',        'Ирек'        : 'Иреку',        'Ислам'     : 'Исламу',       'Линар'     : 'Линару',
-                    'Ленар'     : 'Ленару',       'Мухамадюсуп' : 'Мухамадюсупу', 'Марлен'    : 'Марлену',      'Наиль'     : 'Наилю',
-                    'Нурмагомед': 'Нурмагомеду',  'Павел'       : 'Павлу',        'Радик'     : 'Радику',       'Радмир'    : 'Радмиру',
+                    'Инял'      : 'Инялу',        'Ирек'        : 'Иреку',        'Ирина'     : 'Ирине',
+                    'Ислам'     : 'Исламу',       'Линар'     : 'Линару',
+                    'Ленар'     : 'Ленару',       
+                    'Максим'    : 'Максиму',      'Мухамадюсуп' : 'Мухамадюсупу', 'Марлен'    : 'Марлену',      'Наиль'     : 'Наилю',
+                    'Николай'   : 'Николаю',      'Нурмагомед'  : 'Нурмагомеду',  
+                    'Павел'     : 'Павлу',        'Радик'       : 'Радику',       'Радмир'    : 'Радмиру',
                     'Раиф'      : 'Раифу',        'Рафаэль'     : 'Рафаэлю',      'Рефат'     : 'Рефату',       'Ринат'     : 'Ринату',
                     'Рифат'     : 'Рифату',       'Рафис'       : 'Рафису',       'Рузим'     : 'Рузиму',       'Руслан'    : 'Руслану',
-                    'Рустем'    : 'Рустему',      'Салех'       : 'Салеху',       'Сергей'    : 'Сергею',       'Тимур'     : 'Тимуру',
-                    'Туратбек'  : 'Туратбеку',
+                    'Рустем'    : 'Рустему',      'Салех'       : 'Салеху',       'Сергей'    : 'Сергею',       'Семён'     : 'Семёну',
+                    'Тимур'     : 'Тимуру',       'Туратбек'    : 'Туратбеку',
                     'Тагир'     : 'Тагиру',       'Тажиб'       : 'Тажибу',       'Урал'      : 'Уралу',        'Фанис'     : 'Фанису',
                     'Фарид'     : 'Фариду',       'Фаррух'      : 'Фарруху',      'Шамиль'    : 'Шамилю',       'Шахбоз'    : 'Шахбозу',
                     'Шафкат'    : 'Шафкату',      'Эрфан'       : 'Эрфану',       'Эрсмак'    : 'Эрсмаку',      'Юрий'      : 'Юрию',
-                    'Ян'        : 'Яну' }
+                    'Ян'        : 'Яну',          'Наталья'     : 'Наталии',      'Виктория'  : 'Виктории'}
   
   for field in prisoner_list:
     # delete exceed word
@@ -173,18 +227,21 @@ def clean_fields_from_exceed(prisoner_list):
     
     name = re.split(r'[\s()]', field['prisoner_name'])
     name = [s for s in name if s != '']
-    print ("name:", name)
+    # print ("name:", name)
     # print (name, field['prisoner_addr'])
 
+    field['prisoner_addr'] = re.sub(r'\s+', ' ', field['prisoner_addr'])
+    field['prisoner_addr'] = re.sub(r'й'  , 'й', field['prisoner_addr'])
+    
     if len(name) >= 2:
       for i in range(2): 
         if len(name[i]) >  3 : name[i] = name[i][0:-2]
         if len(name[i]) == 3 : name[i] = name[i][0:-1]
       
       name = [re.sub(r'[её]', '[её]', s) for s in name]
-      print (name)
+      # print (name)
       find_grad = ''.join(re.findall(fr'{name[0]}\w*\s{name[1]}\w+', field['prisoner_addr'])).split()
-      print (find_grad)
+      # print (find_grad)
       
       if len(find_grad) >=2 :
         # print (field['prisoner_addr'])
@@ -204,7 +261,6 @@ def clean_fields_from_exceed(prisoner_list):
       field['prisoner_grad'] = re.sub(r'кий$', 'кому', field['prisoner_grad'])
       field['prisoner_grad'] = re.sub(r'Шохиста Каримова', 'Шохисте Каримовой', field['prisoner_grad'])
       field['prisoner_grad'] = re.sub(r'Матлюба Насимова', 'Матлюбе Насимовой', field['prisoner_grad'])
-      field['prisoner_grad'] = re.sub(r'Виктору Шур', 'Виктору Шуру', field['prisoner_grad'])
       field['prisoner_grad'] = re.sub(r'Берчук$', 'Берчуку', field['prisoner_grad'])
       field['prisoner_grad'] = re.sub(r'Юрию Корный', 'Юрию Корному', field['prisoner_grad'])
 
@@ -213,7 +269,6 @@ def clean_fields_from_exceed(prisoner_list):
     field['prisoner_addr'] = field['prisoner_addr'].split("ФИО", 1)[0]
     field['prisoner_addr'] = field['prisoner_addr'].split("или через сервис:", 1)[0]
     
-    field['prisoner_addr'] = re.sub(r'\s+', ' ', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'\n', r' ', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'^(\d{3}) (\d{3})', r'\1\2', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'^(\d{6}) ', r'\1, ', field['prisoner_addr'])
@@ -233,40 +288,6 @@ def clean_fields_from_exceed(prisoner_list):
     field['prisoner_addr'] = re.sub(r'НА ЭТАПЕ|На этапе|ЭТАП', r'этап', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'АДРЕС УТОЧНЯЕТСЯ|Адрес уточняется|адрес уточняется', r'уточняется', field['prisoner_addr'])
     field['prisoner_addr'] = re.sub(r'.*уточняется\b.*', r'уточняется', field['prisoner_addr'])
-    
-    # field['prisoner_addr'] = re.sub(r'Тюменская обл., г. Тюмень', 'г. Тюмень', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Тюменская область, г. Тюмень', 'г. Тюмень', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Томская область, г. Томск', 'г. Томск', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Ростовская область, Ростов-на-Дону', 'г. Ростов-на-Дону', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Ростовская область, г. Ростов-на-Дону,', 'г. Ростов-на-Дону,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Россия, респ. Татарстан, г. Казань', r'г. Казань', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Свердловская область, г. Екатеринбург,', r'г. Екатеринбург,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Республика Крым, г. Симферополь,', r'г. Симферополь,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Алтайский край, г. Барнаул,', r'г. Барнаул,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Краснодарский край, г. Краснодар,', r'г. Краснодар,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Красноярский край, г. Красноярск,', r'г. Красноярск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Кировская область, г. Киров,', r'г. Киров,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Костромская область, г. Кострома,', r'г. Кострома,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Липецкая область, г. Липецк, ', r'г. Липецк,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Тверская область, г. Тверь,', r'г. Тверь,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Ярославская область, г. Ярославль,', r'г. Ярославль,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Владимирская область, г. Владимир,', r'г. Владимир,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Рязанская область, г. Рязань,', r'г. Рязань,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Омская область, г. Омск,', r'г. Омск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Иркутская область, г. Иркутск,', r'г. Иркутск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Чеченская Республика, г. Грозный,', r'г. Грозный,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Республика Татарстан, г. Казань,', r'г. Казань,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Республика Бурятия, г. Улан-Удэ,', r'г. Улан-Удэ,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Верхнеуральский район, г. Верхнеуральск,', r'г. Верхнеуральск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Чугуевский район, с. Чугуевка,', r'с. Чугуевка,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Апшеронский район, г. Хадыженск,', r'г. Хадыженск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'п. Индустриальный, ул. Кразовская', r'ул. Кразовская', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'г. Колпино, ул. Колпинская,', r'ул. Колпинская,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Новомосковский район, г. Новомосковск,', r'г. Новомосковск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'г. Архангельск, Приморский район, п. Талаги,', r'г. Архангельск, п. Талаги,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Краснодарский край, Усть-Лабинский район, п. Двубратский', r'Краснодарский край, п. Двубратский', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Ставропольский край, Советский район, г. Зеленокумск,', r'Ставропольский край, г. Зеленокумск,', field['prisoner_addr'])
-    # field['prisoner_addr'] = re.sub(r'Ленинградская область, Ломоносовский район, Виллозское городское поселение,', r'Ленинградская область, Ломоносовский район,', field['prisoner_addr'])
     
     # print (field['prisoner_addr'])
   return prisoner_list
@@ -363,7 +384,7 @@ def unified_list_file (input_file, output_file):
   while line :
     line = re.sub(r"^\[(.*)\]\(.*\) `(.*) г.р.` :addr_delim:.*:addr_delim:", r'[\1] ::: \2 ::: ', line)
     line = re.sub(r"\s+", " ", line)
-    line = re.sub(r"::: \d+\.\d+.(\d+) :::", r"::: \1 :::", line)
+    # line = re.sub(r"::: \d+\.\d+.(\d+) :::", r"::: \1 :::", line)
     line = re.sub('ё', 'е', line)
     line = re.sub(r"$", suff, line)
     print (line, file=output_file)
@@ -372,7 +393,7 @@ def unified_list_file (input_file, output_file):
 def sort_lines_in_file (input_file, output_file):
   with open(input_file,'r') as first_file:
     rows = first_file.readlines()
-    sorted_rows = sorted(rows, key=lambda x: x.split()[0], reverse=False)
+    sorted_rows = sorted(rows, reverse=False)
     with open(output_file,'w') as second_file:
       for row in sorted_rows:
         second_file.write(row)

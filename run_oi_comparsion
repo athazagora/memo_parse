@@ -1,0 +1,8 @@
+#!/bin/bash
+
+python3 parsepzk_top.py --list=oi --truncated
+python3 parsepzk_top.py --list=bot --truncated
+#python3 parsepzk_top.py --list=tv --truncated
+python3 parsepzk_top.py -c
+vimdiff oi_all_sort.txt bt_all_sort.txt
+

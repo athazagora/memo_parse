@@ -5,9 +5,8 @@
 import re
 import pandas as pd
 
-
-def create_prison_dict (file_name):
-  is_debug = 0
+def create_prison_dict (file_name, is_debug = 0):
+  
   results = []
   tmp_list = []
   
@@ -17,18 +16,23 @@ def create_prison_dict (file_name):
   fku_id = 0
   for item in tmp_list:
     address_parts = re.split(',|\(|\)', item[4])
-    address_parts = [s for s in address_parts if s != '']
+    address_parts += [str(item [3])]
+    address_parts = [s for s in address_parts if not (s in {'', "nan"})]
     # print (address_parts)
-    address_parts = [re.sub(r'^ул\. |^г\. |^мкр\. |^д\. |^зд\. |^п\. |^пер\. |^с\. |^бул\. |^стр\. |^р\. п\.  |^ш\. |^пгт |проезд$|квартал ', '', s.strip()) for s in address_parts]
+    address_parts = [re.sub(r'^ул\. |^г\. |^мкр\. |^д\. |^зд\. |^п\. |^пер\. |^с\. |^бул\. |^пр-т |^стр\. |^р\. п\.  |^ш\. |^пгт |проезд$|квартал ', '', s.strip()) for s in address_parts]
     address_parts = [re.sub(r'—|–|−|-', '-', s.upper()) for s in address_parts]
     address_parts = [re.sub('Ё', 'Е', s)                for s in address_parts]
     address_parts = [re.sub(r'САЛАВАТ−6', 'САЛАВАТ', s) for s in address_parts]
+    
+    item [0] = re.sub(r'(\(|\))', r'\\\1', item [0])
+    # print (item [0])
     
     results.append({
       'fku_id'      : fku_id,
       'fku_reg'     : item [0],
       'fku_type'    : str(item [1]),
       'fku_num'     : str(item [2]),
+      'fku_slng'    : str(item [3]),
       'fku_addr'    : item [4],
       'addr_parts'  : address_parts,
       'fku_fsin'    : "",
@@ -40,6 +44,10 @@ def create_prison_dict (file_name):
   df = pd.read_excel(file_name, 1) # can also index sheet by name or fetch all sheets
   tmp_list = df.values.tolist()
   for item in tmp_list: item = [str(s).strip() for s in item]
+  for item in tmp_list:
+    item [0] = re.sub(r'(\(|\))', r'\\\1', item [0])
+    # item [1] = re.sub(r'(\(|\))', r'\\\1', item [1])
+    # print ("fcu_reg : ", item [0])
   
   for i in results:
     if i['fku_type'] == "СИЗО (ц. п.)" :
@@ -54,7 +62,7 @@ def create_prison_dict (file_name):
           else :
             i['fku_name'] = i['fku_type'] + "-" + i['fku_num']
       if i['fku_fsin'] == "" or i['fku_name'] == "" : print (i)
-    i['fku_reg_d'] = re.sub(r".*РОССИИ ПО ", "", i['fku_fsin'].upper())
+    i['fku_reg_d'] = re.sub(r".* ПО ", "", i['fku_fsin'].upper())
     i['fku_reg_d'] = re.sub(r'—|–|−|-', '-', i['fku_reg_d'])
   
   df = pd.read_excel(file_name, 2) # can also index sheet by name or fetch all sheets
@@ -102,11 +110,11 @@ def part_comparsion (part, int_arr, index_string, address_string, is_debug = 0):
   return compare_num
 
 
-def find_max_compare (init_address_string, prison_list, truncated = 0):
-  is_debug = 0
+def find_max_compare (init_address_string, prison_list, truncated = 0, is_debug = 0):
   
   waigth_id_list = []
-  # print ("MAX : ", address_string )
+  if is_debug:
+    print ("======================\ninit_address_string : ", init_address_string )
   prepared_address_string = init_address_string ;
   
   prepared_address_string = re.sub(r'—|–|−|-', '-', prepared_address_string.upper())  #defis
@@ -123,15 +131,28 @@ def find_max_compare (init_address_string, prison_list, truncated = 0):
   prepared_address_string = re.sub(r'\bФКУТ\b'                           , 'ФКУ Т'             , prepared_address_string)
   prepared_address_string = re.sub(r'\sФЕДЕРАЛЬНОЕ\sКАЗЕННОЕ\sУЧРЕЖДЕНИЕ\s'  , ' ФКУ '         , prepared_address_string)
   prepared_address_string = re.sub(r'\b(СИЗО|ИК|Т|ЛИУ|КП|ОИК)\b[\s№\-]{1,3}?(\d+)' , r"\1-\2"        , prepared_address_string)
+  prepared_address_string = re.sub(r'\bСАНКТ- ПЕТЕРБУРГ\b'            , r"САНКТ-ПЕТЕРБУРГ"     , prepared_address_string)
   
   prepared_address_string = re.sub(r'УФСИН(.*)\sПО\s(.*)РЕСПУБЛИКИ'            , r'УФСИН\1 ПО \2РЕСПУБЛИКЕ'               , prepared_address_string)
   
-  prepared_address_string = re.sub(r'ПО (Г\. )?САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ|ПО СПБ И ЛО' , "ПО Г. САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ"     , prepared_address_string)
+  prepared_address_string = re.sub(r'ПО (Г\. )?САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ|ПО СПБ И ЛО|ПО ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ', 
+                                                                    "ПО Г. САНКТ-ПЕТЕРБУРГУ И ЛЕНИНГРАДСКОЙ ОБЛАСТИ"     , prepared_address_string)
   prepared_address_string = re.sub(r'ПО РЕСПУБЛИКЕ КРЫМ И Г\.? СЕВАСТОПОЛЬ'    , 'ПО РЕСПУБЛИКЕ КРЫМ И Г. СЕВАСТОПОЛЮ'   , prepared_address_string)
   prepared_address_string = re.sub(r'ПО ЧУВАШИИ|ПО ЧУВАШСКОЙ РЕСПУБЛИКЕ|ПО ЧР' , 'ПО ЧУВАШСКОЙ РЕСПУБЛИКЕ - ЧУВАШИИ'     , prepared_address_string)
   prepared_address_string = re.sub(r'ПО УДМУРТИИ|ПО РЕСПУБЛИКЕ УДМУРТИЯ|ПО УР' , 'ПО УДМУРТСКОЙ РЕСПУБЛИКЕ'              , prepared_address_string)
   prepared_address_string = re.sub(r'ПО ХМАО'                                  , 'ПО ХМАО - ЮГРЕ'                        , prepared_address_string)
   prepared_address_string = re.sub(r'ПО ЯНАО'                                  , 'ПО ЯМАЛО-НЕНЕЦКОМУ АВТОНОМНОМУ ОКРУГУ' , prepared_address_string)
+  # prepared_address_string = re.sub(r'ПО РЕСПУБЛИКЕ САХА \(ЯКУТИЯ\)'            , 'ПО РЕСПУБЛИКЕ САХА'                    , prepared_address_string)
+  # prepared_address_string = re.sub(r'(\(|\))', r'\\\1', prepared_address_string)
+  
+
+  special_mode_dict = { 'УКП' : 0 , 'ПФРСИ' : 0 , 'МОБ' : 0, 'предположительно' : 0, 'отряд \d+' : 0}
+  for key in special_mode_dict :
+    if re.search(fr"\b{key}\b", prepared_address_string):
+      prepared_address_string = re.sub(fr'\b{key}\b', '', prepared_address_string)
+      special_mode_dict[key] = 1
+      if is_debug:
+        print ("find ", key, " in prepared_address_string: ", prepared_address_string)
   
   index_string = re.findall(r'\d{6}', prepared_address_string)
   if len (index_string) > 0 :
@@ -144,7 +165,7 @@ def find_max_compare (init_address_string, prison_list, truncated = 0):
   if is_debug: 
     print ("prepared_address_string string: ", prepared_address_string )
   
-  fku_string = re.findall(r'\sСИЗО\b-? ?\d+|\sИК\b-? ?\d+|\sКП\b-? ?\d+|\sТ\b-? ?\d+|\sЛИУ\b-? ?\d+|\sТ\b', cleaned_address_string)
+  fku_string = re.findall(r'\sСИЗО\b-? ?\d+|\sИК\b-? ?\d+|\sКП\b-? ?\d+|\sТ\b-? ?\d+|\sЛИУ\b-? ?\d+|\sТ\b|\b\w+\sВК\b', cleaned_address_string)
   if len (fku_string) == 0 :
     if is_debug: print ("Not found fku_type in \"", init_address_string, "\"")
     return init_address_string
@@ -166,8 +187,10 @@ def find_max_compare (init_address_string, prison_list, truncated = 0):
   pattern_found = 0
   for item in prison_list:
     compare_num = 0
+    fku_reg_d = re.sub(r'(\(|\))', r'\\\1', item['fku_reg_d'])
+    # print (fku_reg_d)
     
-    if re.search(fr"\b{item['fku_name']}\b.*\s{item['fku_reg_d']}\b|{item['fku_reg'].upper()}\b.*\b{item['fku_name']}\b", prepared_address_string):
+    if re.search(fr"\b{item['fku_name']}\b.*\s{fku_reg_d}|{item['fku_reg'].upper()}\b.*\b{item['fku_name']}\b", prepared_address_string):
       compare_num += 10
       pattern_found |= 1
       if is_debug: print (compare_num, " : ", prepared_address_string, " : pattern find : ", item['fku_name'], " по ", item['fku_reg_d'])
@@ -194,6 +217,13 @@ def find_max_compare (init_address_string, prison_list, truncated = 0):
   else:
     result_addr = max_id_list[0]['fku_addr']
   
+  for key in special_mode_dict :
+    if special_mode_dict[key] :
+      if key in ["УКП", "ПФРСИ", "МОБ"]:
+        result_addr = re.sub(r'ФКУ', fr"{key} при ФКУ" , result_addr)
+      else:
+        result_addr = result_addr + fr" ({key})"
+  
   if len (max_id_list) != 1 : 
     print ("More then one case for reserched string: ", init_address_string )
     print ("Extracted fku_string : ", fku_string)
@@ -210,7 +240,10 @@ def find_max_compare (init_address_string, prison_list, truncated = 0):
     print ("Extracted index_string : ", index_string, int_arr)
     print ("curent string: ", cleaned_address_string)
     print ("++++++++++++++++")
-  
+
+  if is_debug:
+    print ("return string: ", result_addr)
+    print ("----------------")
   
   return result_addr
   
